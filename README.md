@@ -1,6 +1,6 @@
 # BlindDeconvolutionGPU
 
-Speeding up blind deconvolution of a blurred image by using GPUs.
+**Speeding up blind deconvolution of a blurred image by using NVIDIA GPUs.**
 
 Provided with the matlab code from the paper [**Total Variation Blind Deconvolution: The Devil is in the Details**](https://www.cv-foundation.org/openaccess/content_cvpr_2014/papers/Perrone_Total_Variation_Blind_2014_CVPR_paper.pdf),
 BlindDeconvolutionGPU is a sped up implementation of the proposed algorithm with NVIDIA GPUs. 
