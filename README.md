@@ -8,7 +8,7 @@ BlindDeconvolutionGPU is a sped up implementation of the proposed algorithm with
 
 The sped up algorithm has been implemented in C with CUDA libraries. This implementation is part of the practical course: GPU Programming in Computer Vision offered at the Technical University of Munich (TUM).
 
-The proposed algorithm was developed by the Computer Vision Group at the University of Bern. The authors of the paper are [Daniele Perrone](perrone@iam.unibe.ch) and [Paolo Favaro](paolo.favaro@iam.unibe.ch).
+The proposed algorithm was developed by the Computer Vision Group at the University of Bern. The code has been included in this repository under the '/sequential' folder. The authors of the paper and developers of the sequential code are [Daniele Perrone](perrone@iam.unibe.ch) and [Paolo Favaro](paolo.favaro@iam.unibe.ch).
 
 ## Links
 
