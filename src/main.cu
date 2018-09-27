@@ -7,7 +7,10 @@
 #include <string>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
 #include "helper.cuh"
+#include "divergence.cuh"
+
 
 int main(int argc,char **argv) {
 
@@ -63,7 +66,6 @@ int main(int argc,char **argv) {
 	float kernel_init_value = 1.0 / kn;
     float *kernel = new float[kn * sizeof(float)];    // DONE i think size should be kn (5.1) allocate array
 
-
     //  initialize kernel to uniform.
 	for(int i = 0; i < nc; i++) 
 		kernel[i] = kernel_init_value;
@@ -79,6 +81,9 @@ int main(int argc,char **argv) {
     // allocate raw input image array
     float *imgIn = new float[img_size];
     float *imgOut = new float[img_size];
+    float *dx = new float[img_size];
+    float *dy = new float[img_size];
+    float *div = new float[img_size];
 
     // allocate arrays on GPU
     // float *d_imgIn = NULL;
@@ -91,11 +96,13 @@ int main(int argc,char **argv) {
 	// convert range of each channel to [0,1]
 	mIn /= 255.0f;
 	// init raw input image array (and convert to layered)
-	convertMatToLayered (imgIn, mIn);
+	convertMatToLayered(imgIn, mIn);
 
 	// TODO IMPLEMENT THESE FUNCTIONS
 	// 1. pre-process: pad image
 	// 2. perform blind de-convolution
+
+    computeDivergence(div, dx, dy, imgIn, w, h, nc);
 
 	// padImage(imgIn);
 	// computeDeconvolution(imgOut, imgIn, kernel, w, h, nc);
@@ -104,21 +111,51 @@ int main(int argc,char **argv) {
 	//cudaMemcpy(imgOut,d_imgOut,nbytes,cudaMemcpyDeviceToHost);
 
 	// show input image
-	//showImage("Input", mIn, 100, 100);  // show at position (x_from_left=100,y_from_above=100)
+    
+    cv::Mat m_dx(h,w,mIn.type());
+    cv::Mat m_dy(h,w,mIn.type());
+    cv::Mat m_div(h,w,mIn.type());
+
+    convertLayeredToMat(m_dx, dx); 
+    convertLayeredToMat(m_dy, dy); 
+    convertLayeredToMat(m_div, div);
+
+    float scale = 500.0;
+    for (size_t i = 0; i < (w * h * nc); ++i) {
+        dx[i] *= scale;
+        dy[i] *= scale;
+        div[i] *= scale;
+        std::cout << dx[i] << std::endl;
+    }
+    
+    size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
+    showImage("Input", mIn, pos_orig_x, pos_orig_y);
+    showImage("dx", m_dx, pos_orig_x + w, pos_orig_y);
+    showImage("dy", m_dy, pos_orig_x, pos_orig_y + w + shift_y);
+    showImage("divergence", m_div, pos_orig_x + w, pos_orig_y + w + shift_y);
 
 	// show output image: first convert to interleaved opencv format from the layered raw array
 	//convertLayeredToMat(mOut, imgOut);
 	//showImage("Output", mOut, 100+w+40, 100);
 
+    // save results
+    cv::imwrite("image_input.png",mIn*255.f); 
+    /*cv::imwrite("image_result.png",mOut*255.f);*/
+    /*cv::imwrite("image_kernel.png",mKernel*255.f);*/
+
+    cv::waitKey(0);
 
     // ### Free allocated arrays
 	// cudaFree(d_imgIn);
 	// cudaFree(d_imgOut);
 	// cudaFree(d_kernel);
 
-    delete[] imgIn;
-	delete[] imgOut;
-    delete[] kernel;
+    delete [] imgIn;
+    delete [] imgOut;
+    delete [] dx;
+    delete [] dy;
+    delete [] div;
+    delete [] kernel;
 
     // close all opencv windows
     cv::destroyAllWindows();
