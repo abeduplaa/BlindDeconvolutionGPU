@@ -7,9 +7,9 @@
 #include <string>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include "helper.cuh"
 
-int main(int argc,char **argv)
-{
+int main(int argc,char **argv) {
 
 // TODO: ADD COMMAND LINE FUNCTIONS LATER
 
@@ -17,10 +17,10 @@ int main(int argc,char **argv)
     // parse command line parameters
     const char *params = {
         "{i|image| |input image}"
-       // "{b|bw|false|load input image as grayscale/black-white}"
-       // "{s|sigma|3.0|sigma}"
-       // "{r|repeats|1|number of computation repetitions}"
-       // "{c|cpu|false|compute on CPU}"
+        "{b|bw|false|load input image as grayscale/black-white}"
+        "{m|mk|5|kernel width }"
+        "{n|nk|5|kernel height}"
+        "{c|cpu|false|compute on CPU}"
        // "{m|mem|0|memory: 0=global, 1=shared, 2=texture}"
     };
     cv::CommandLineParser cmd(argc, argv, params);
@@ -30,47 +30,44 @@ int main(int argc,char **argv)
     // number of computation repetitions to get a better run time measurement
     // size_t repeats = (size_t)cmd.get<int>("repeats");
     // load the input image as grayscale
-    // bool gray = cmd.get<bool>("bw");
-    // compute on CPU
-    // bool cpu = cmd.get<bool>("cpu");
-    // std::cout << "mode: " << (cpu ? "CPU" : "GPU") << std::endl;
+     bool gray = cmd.get<bool>("bw");
+	 int mk = cmd.get<int>("mk");
+	 int nk = cmd.get<int>("nk");
+     bool is_cpu = cmd.get<bool>("cpu");
+
+     std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
 
 
     // read input frame
     cv::Mat mIn;
-        // load the input image using opencv (load as grayscale if "gray==true", otherwise as is (may be color or grayscale))
-        mIn = cv::imread(inputImage.c_str(), (gray ? CV_LOAD_IMAGE_GRAYSCALE : -1));
-    }
+    // load the input image using opencv (load as grayscale if "gray==true", otherwise as is (may be color or grayscale))
+    mIn = cv::imread(inputImage.c_str(), (gray ? CV_LOAD_IMAGE_GRAYSCALE : -1));
+
     // check
-    if (mIn.empty())
-    {
+    if (mIn.empty()) {
         std::cerr << "ERROR: Could not retrieve frame " << inputImage << std::endl;
         return 1;
     }
     // convert to float representation (opencv loads image values as single bytes by default)
     mIn.convertTo(mIn, CV_32F);
 
-    // init kernel
-	int MK = 0;
-	int NK = 0;
-    int kn = MK * NK;
-	size_t kernel_bytes = (size_t)(kn)*sizeof(float);
-	float kElem_value = 1.0 / kn;
-    float *kernel = new float[kn];    // DONE i think size should be kn (5.1) allocate array
-    //  initialize kernel to uniform.
-
-	for(int i = 0; i<nc;i++)
-	{
-		kernel[i] = kElem_value;
-	} 
-
     // get image dimensions
     int w = mIn.cols;         // width
     int h = mIn.rows;         // height
     int nc = mIn.channels();  // number of channels
-	int img_size = w*h*nc;
-    size_t nbytes = (size_t)(img_size)*sizeof(float);
+	size_t img_size = w * h * nc;
     std::cout << "Image: " << w << " x " << h << std::endl;
+
+    // init kernel
+    size_t kn = mk * nk;
+	float kernel_init_value = 1.0 / kn;
+    float *kernel = new float[kn * sizeof(float)];    // DONE i think size should be kn (5.1) allocate array
+
+
+    //  initialize kernel to uniform.
+	for(int i = 0; i < nc; i++) 
+		kernel[i] = kernel_init_value;
+
 
     // initialize CUDA context
     // cudaDeviceSynchronize();
