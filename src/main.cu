@@ -35,7 +35,7 @@ int main(int argc,char **argv)
     // bool cpu = cmd.get<bool>("cpu");
     // std::cout << "mode: " << (cpu ? "CPU" : "GPU") << std::endl;
 
-
+    // TODO: LOAD IMAGE
     // read input frame
     cv::Mat mIn;
         // load the input image using opencv (load as grayscale if "gray==true", otherwise as is (may be color or grayscale))
@@ -50,7 +50,8 @@ int main(int argc,char **argv)
     // convert to float representation (opencv loads image values as single bytes by default)
     mIn.convertTo(mIn, CV_32F);
 
-    // init kernel
+
+    // TODO: init kernel
 	int MK = 0;
 	int NK = 0;
     int kn = MK * NK;
@@ -79,10 +80,12 @@ int main(int argc,char **argv)
     cv::Mat mOut(h,w,mIn.type());  // grayscale or color depending on input image, nc layers
 
     // ### Allocate arrays
+    // TODO: CHANGE IMAGE AND IMAGE SIZE TO MAKE ODD IN EACH DIMENSION
     // allocate raw input image array
     float *imgIn = new float[img_size];
     float *imgOut = new float[img_size];
 
+    // TODO: ALLOCATE MEMORY ON GPU
     // allocate arrays on GPU
     // float *d_imgIn = NULL;
     // float *d_imgOut = NULL;
@@ -96,9 +99,11 @@ int main(int argc,char **argv)
 	// init raw input image array (and convert to layered)
 	convertMatToLayered (imgIn, mIn);
 
-	// TODO IMPLEMENT THESE FUNCTIONS
+	`// TODO:  IMPLEMENT THESE FUNCTIONS
 	// 1. pre-process: pad image
-	// 2. perform blind de-convolution
+	
+
+// 2. perform blind de-convolution
 
 	// padImage(imgIn);
 	// computeDeconvolution(imgOut, imgIn, kernel, w, h, nc);
