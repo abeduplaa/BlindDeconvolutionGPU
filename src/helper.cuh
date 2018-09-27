@@ -5,13 +5,14 @@
 #ifndef TUM_HELPER_CUH
 #define TUM_HELPER_CUH
 
-#include <cuda_runtime.h>
-#include <ctime>
+#include <iostream>
+#include <string>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <cuda_runtime.h>
+#include <ctime>
 #include <string>
 
- 
 
 // CUDA utility functions
 
@@ -20,25 +21,20 @@
 void cuda_check(std::string file, int line);
 
 // compute grid size from block size
-inline dim3 computeGrid1D(const dim3 &block, const int w) {
-    // TODO (3.2) compute 1D grid size from block size
-    int num_blocks_x = (w + block.x - 1) / block.x;
-    return dim3(num_blocks_x, 1, 1);
+inline dim3 computeGrid1D(const dim3 &block, const int w)
+{
+    return dim3((w + block.x -1)/block.x, 1, 1);   // TODO (3.2) compute 1D grid size from block size
 }
 
-inline dim3 computeGrid2D(const dim3 &block, const int w, const int h) {
-    // TODO (3.2) compute 2D grid size from block size
-    int num_blocks_x = (w + block.x - 1) / block.x;
-    int num_blocks_y = (h + block.y - 1) / block.y;
-    return dim3(num_blocks_x, num_blocks_y, 1);
+inline dim3 computeGrid2D(const dim3 &block, const int w, const int h)
+{
+    return dim3((w + block.x -1)/block.x, (h + block.y -1)/block.y, 1);   // TODO (3.2) compute 2D grid size from block size
 }
 
-inline dim3 computeGrid3D(const dim3 &block, const int w, const int h, const int s) {
-    // TODO (3.2) compute 3D grid size from block size
-    int num_blocks_x = (w + block.x - 1) / block.x;
-    int num_blocks_y = (h + block.y - 1) / block.y;
-    int num_blocks_z = (s + block.z - 1) / block.z;
-    return dim3(num_blocks_x, num_blocks_y, num_blocks_z); }
+inline dim3 computeGrid3D(const dim3 &block, const int w, const int h, const int s)
+{
+    return dim3((w + block.x -1)/block.x, (h + block.y -1)/block.y, (s + block.z -1)/block.z);   // TODO (3.2) compute 3D grid size from block size
+}
 
 
 // OpenCV image conversion
