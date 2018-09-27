@@ -14,8 +14,7 @@
 
 int main(int argc,char **argv) {
 
-// TODO: ADD COMMAND LINE FUNCTIONS LATER
-
+    // TODO: ADD COMMAND LINE FUNCTIONS LATER
 
     // parse command line parameters
     const char *params = {
@@ -43,7 +42,8 @@ int main(int argc,char **argv) {
 
     // read input frame
     cv::Mat mIn;
-    // load the input image using opencv (load as grayscale if "gray==true", otherwise as is (may be color or grayscale))
+    // load the input image using opencv (load as grayscale if "gray==true", 
+    // otherwise as is (may be color or grayscale))
     mIn = cv::imread(inputImage.c_str(), (gray ? CV_LOAD_IMAGE_GRAYSCALE : -1));
 
     // check
@@ -64,7 +64,7 @@ int main(int argc,char **argv) {
     // init kernel
     size_t kn = mk * nk;
 	float kernel_init_value = 1.0 / kn;
-    float *kernel = new float[kn * sizeof(float)];    // DONE i think size should be kn (5.1) allocate array
+    float *kernel = new float[kn * sizeof(float)];
 
     //  initialize kernel to uniform.
 	for(int i = 0; i < nc; i++) 
@@ -86,12 +86,23 @@ int main(int argc,char **argv) {
     float *div = new float[img_size];
 
     // allocate arrays on GPU
-    // float *d_imgIn = NULL;
-    // float *d_imgOut = NULL;
+    float *d_imgIn = NULL;
+    float *d_imgOut = NULL;
+    float *d_dx = NULL;
+    float *d_dy = NULL;
+    float *d_div = NULL;
     // float *d_kernel = NULL;
-	// cudaMalloc(&d_imgIn,nbytes);
-	// cudaMalloc(&d_imgOut,nbytes);
-	// cudaMalloc(&d_kernel,kernel_bytes);
+
+    cudaMalloc(&d_imgIn, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_imgOut , w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dx , w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dy , w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_div , w * h * nc * sizeof(float)); CUDA_CHECK;
+
+    // copy input data to GPU 
+    cudaMemcpy(d_imgIn, imgIn, w * h * nc * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
+    
+
 
 	// convert range of each channel to [0,1]
 	mIn /= 255.0f;
@@ -115,8 +126,8 @@ int main(int argc,char **argv) {
     cv::Mat m_dx(h, w, mIn.type());
     cv::Mat m_dy(h, w, mIn.type());
     cv::Mat m_div(h, w, mIn.type());
-
-    convertLayeredToMat(mOut, imgIn); 
+    
+    // copy data from GPU to CPU
     float scale = 10.0;
     for (size_t i = 0; i < (w * h * nc); ++i) {
         dx[i] *= scale;
@@ -125,6 +136,7 @@ int main(int argc,char **argv) {
     }
     
 
+	// show output image: first convert to interleaved opencv format from the layered raw array
     convertLayeredToMat(m_dx, dx); 
     convertLayeredToMat(m_dy, dy); 
     convertLayeredToMat(m_div, div);
@@ -135,7 +147,6 @@ int main(int argc,char **argv) {
     showImage("dy", m_dy, pos_orig_x, pos_orig_y + w + shift_y);
     showImage("divergence", m_div, pos_orig_x + w, pos_orig_y + w + shift_y);
 
-	// show output image: first convert to interleaved opencv format from the layered raw array
 	//convertLayeredToMat(mOut, imgOut);
 	//showImage("Output", mOut, 100+w+40, 100);
 
@@ -146,17 +157,19 @@ int main(int argc,char **argv) {
 
     cv::waitKey(0);
 
-    // ### Free allocated arrays
-	// cudaFree(d_imgIn);
-	// cudaFree(d_imgOut);
-	// cudaFree(d_kernel);
-
+    // Free allocated arrays
     delete [] imgIn;
     delete [] imgOut;
     delete [] dx;
     delete [] dy;
     delete [] div;
     delete [] kernel;
+
+    cudaFree(d_imgIn); CUDA_CHECK;
+    cudaFree(d_imgOut); CUDA_CHECK;
+    cudaFree(d_dx); CUDA_CHECK;
+    cudaFree(d_dy); CUDA_CHECK;
+    cudaFree(d_div); CUDA_CHECK;
 
     // close all opencv windows
     cv::destroyAllWindows();
