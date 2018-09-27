@@ -25,12 +25,12 @@ void computeDivergence(float *div, float *dx, float *dy, const float *imgIn, siz
     for (size_t channel = 0; channel < nc; ++channel) {
 
         // update the core of the layer
-        for (size_t y = 1; y < h - 2; ++y) {
-            for (size_t x = 1; x < w - 2; ++x) {
+        for (size_t y = 0; y < h - 1; ++y) {
+            for (size_t x = 0; x < w - 1; ++x) {
 
                 int offset = w * h * channel;
                 float right_cell = x < (w - 1) ? imgIn[getIndex(x + 1, y, w) + offset] : 0.0f;
-                float top_cell = x < (h - 1) ? imgIn[getIndex(x, y + 1, w) + offset] : 0.0f;
+                float top_cell = y < (h - 1) ? imgIn[getIndex(x, y + 1, w) + offset] : 0.0f;
 
                 dx[getIndex(x, y, w) + offset] = right_cell - imgIn[getIndex(x, y, w) + offset];
                 dy[getIndex(x, y, w) + offset] = top_cell - imgIn[getIndex(x, y, w) + offset];
@@ -47,8 +47,8 @@ void computeDivergence(float *div, float *dx, float *dy, const float *imgIn, siz
                 
                 int offset = w * h * channel;
 
-                float left_cell = x > 0 ? imgIn[getIndex(x - 1, y, w) + offset] : 0.0f;
-                float bottom_cell = x > 0 ? imgIn[getIndex(x, y - 1, w) + offset] : 0.0f;
+                float left_cell = x > 0 ? dx[getIndex(x - 1, y, w) + offset] : 0.0f;
+                float bottom_cell = y > 0 ? dy[getIndex(x, y - 1, w) + offset] : 0.0f;
 
                 div[getIndex(x, y, w) + offset] = dx[getIndex(x, y, w) + offset] - left_cell
                                                 + dy[getIndex(x, y, w) + offset] - bottom_cell;

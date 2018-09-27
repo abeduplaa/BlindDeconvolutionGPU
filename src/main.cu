@@ -112,22 +112,23 @@ int main(int argc,char **argv) {
 
 	// show input image
     
-    cv::Mat m_dx(h,w,mIn.type());
-    cv::Mat m_dy(h,w,mIn.type());
-    cv::Mat m_div(h,w,mIn.type());
+    cv::Mat m_dx(h, w, mIn.type());
+    cv::Mat m_dy(h, w, mIn.type());
+    cv::Mat m_div(h, w, mIn.type());
+
+    convertLayeredToMat(mOut, imgIn); 
+    float scale = 10.0;
+    for (size_t i = 0; i < (w * h * nc); ++i) {
+        dx[i] *= scale;
+        dy[i] *= scale;
+        div[i] *= scale;
+    }
+    
 
     convertLayeredToMat(m_dx, dx); 
     convertLayeredToMat(m_dy, dy); 
     convertLayeredToMat(m_div, div);
 
-    float scale = 500.0;
-    for (size_t i = 0; i < (w * h * nc); ++i) {
-        dx[i] *= scale;
-        dy[i] *= scale;
-        div[i] *= scale;
-        std::cout << dx[i] << std::endl;
-    }
-    
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
     showImage("Input", mIn, pos_orig_x, pos_orig_y);
     showImage("dx", m_dx, pos_orig_x + w, pos_orig_y);

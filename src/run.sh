@@ -4,7 +4,8 @@
 #postcard.png
 
 DATA_FOLDER=../sequential/data/
-IMAGE=postcard.png
+IMAGE=gaudi.png
+#IMAGE=postcard.png
 EXE_FILE=./build/deblur
 
 if [ ! -f $EXE_FILE ]; then
