@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(deblur)
+
+find_package(CUDA REQUIRED)
+
+# OpenCV
+find_package(OpenCV 2.4.8 COMPONENTS
+    core highgui imgproc video
+    REQUIRED
+)
+if(opencv_core_found)
+    include_directories(${OpenCV_INCLUDE_DIRS})
+endif()
+
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3; -std=c++11; -arch=sm_50; -Xptxas -v)
+
+#add_definitions(-DDEBUG)
+file(GLOB SRCS "./*.cu")
+
+include_directories(${CMAKE_SOURCE_DIR})
+message( ${CMAKE_SOURCE_DIR} )
+cuda_add_executable(deblur ${SRCS})
+target_link_libraries(deblur -lm ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CUDA_cublas_LIBRARY})
+# Add CUBLAS to target

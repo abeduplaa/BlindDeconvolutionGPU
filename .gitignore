@@ -1,0 +1,7 @@
+*.swo
+*.swp
+*.pyc
+*.log
+*.png
+src/build
+
