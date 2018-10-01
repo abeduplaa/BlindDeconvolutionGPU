@@ -5,11 +5,19 @@
 #include "epsilon.cuh"
 
 
-float computeMaxElem(const float *array, const float size)
+float computeMaxElem(const float *array,const float size)
 {
-    float maxElem = 0;
-    
-    maxElem = std::max_element(array,array+size);
+    float maxElem = array[0];
+	
+	for(int i=1; i<size; i++)
+	{
+		if (array[i]>array[i-1])
+		{
+			maxElem = array[i];
+		}
+	}
+
+	//maxElem = *std::max_element(array,array+size);
 
     return maxElem;
 }
