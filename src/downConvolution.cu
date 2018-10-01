@@ -1,0 +1,44 @@
+#include "downConvolution.cu"
+#include <iostream>
+#include <cuda_runtime.h>
+#include "helper.cuh"
+
+
+void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *kernel, int w, int h, int nc, int m, int n)
+{
+	//0. define necessary variables
+	size_t imgOut_h = m - h + 1;
+	size_t imgOut_w = n - w + 1;
+	int kRadius_w = (w-1)/2;
+	int kRadius_h = (h-1)/2;
+
+
+	//1. check if kernel dimensions are less than image dimensions ( h>m+1 and also w>n+1)
+
+	//2. compute downconvolution
+
+	for(int c = 0; c < nc; c++)
+	{
+		for(int j = 0 ; j < imgOut_h ; j++)
+		{
+			for(int i = 0 ; i < imgOut_w ; i++)
+			{
+				out_idx = i + j*imgOut_w + c*imgOut_h*imgOut_w;
+				in_idx = out_idx + (kRadius_h*n) + kRadius_w + (kRadius_w*2)*j;
+				for(int kj = 0; kj < h; ++kj)
+				{
+					for(int ki = 0; ki < w; ++ki)
+					{
+						kidx = in_idx - (kRadius_w - ki) - ( (kRadius_h - kj)*w);
+						imgOut[out_idx] += kernel[ki + kj*w] * imgIn[kidx];
+					}
+				}
+			}
+		} 
+	}
+}
+
+
+
+
+
