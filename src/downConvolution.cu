@@ -1,19 +1,23 @@
-#include "downConvolution.cu"
 #include <iostream>
 #include <cuda_runtime.h>
+
+#include "downConvolution.cuh"
 #include "helper.cuh"
 
 
 void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *kernel, int w, int h, int nc, int m, int n)
 {
-	//0. define necessary variables
+	//0. check if kernel dimensions are less than image dimensions ( h>m+1 or also w>n+1)
+	if( (h>m+1) || (w>n+1) )
+	{
+		throw "Kernel dimensions are too big!";
+	}
+
+	//1. define necessary variables
 	size_t imgOut_h = m - h + 1;
 	size_t imgOut_w = n - w + 1;
 	int kRadius_w = (w-1)/2;
 	int kRadius_h = (h-1)/2;
-
-
-	//1. check if kernel dimensions are less than image dimensions ( h>m+1 and also w>n+1)
 
 	//2. compute downconvolution
 

@@ -9,10 +9,17 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "helper.cuh"
-#include "divergence.cuh"
+#include "downConvolution.cuh"
+#include "testdownConv.cuh"
 
 
-int main(int argc,char **argv) {
+int main(int argc,char **argv)
+{
+    downConvTest();
+}
+
+
+/* int main(int argc,char **argv) {
 
     // TODO: ADD COMMAND LINE FUNCTIONS LATER
 
@@ -156,8 +163,8 @@ int main(int argc,char **argv) {
 
     // save results
     cv::imwrite("image_input.png",mIn*255.f); 
-    /*cv::imwrite("image_result.png",mOut*255.f);*/
-    /*cv::imwrite("image_kernel.png",mKernel*255.f);*/
+    cv::imwrite("image_result.png",mOut*255.f);
+    cv::imwrite("image_kernel.png",mKernel*255.f);
 
     cv::waitKey(0);
 
@@ -179,7 +186,8 @@ int main(int argc,char **argv) {
     cv::destroyAllWindows();
 
     return 0;
-}
+} 
+*/
 
 
 

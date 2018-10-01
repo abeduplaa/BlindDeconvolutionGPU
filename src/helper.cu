@@ -168,3 +168,5 @@ void addNoise(cv::Mat &m, float sigma)
         data[i] += noise(sigma);
     }
 }
+
+
