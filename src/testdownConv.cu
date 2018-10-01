@@ -33,16 +33,20 @@ void downConvTest(){
 
 
     for(int i=0; i<inSize; i++)
+    {
         imgIn[i] = 1.0f;
-        dummyGradU[i] = i*1.0f;
-
+        dummyGradU[i] = i * 1.0f;
+    }
     
     for(int i=0; i<kernelSize; i++)
+    {
         kernel[i] = 1.0f;
+    }    
     
     for(int i=0; i<outSize ; i++)
+    {
         f[i] = 3.2f;
-
+    }
     
     //CPU commands
     //padImgCPU(imgOut, imgIn, w, h, nc, m, n);
@@ -50,7 +54,7 @@ void downConvTest(){
     
     computeDownConvolutionCPU(imgDownConv, imgIn, kernel, w, h, nc, m, n);
 
-    eps = computeEpsilonU(imgIn, dummyGradU, inSize)
+    eps = computeEpsilonU(imgIn, dummyGradU, inSize);
 
     subtractArrays(imgOut,imgDownConv, f, outSize);
 
