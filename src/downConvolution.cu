@@ -34,11 +34,13 @@ void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *k
 			{
 				out_idx = i + j*imgOut_w + c*imgOut_h*imgOut_w;
 				in_idx = out_idx + (kRadius_h*n) + kRadius_w + (kRadius_w*2)*j;
+				// std::cout<< "output idx: " << out_idx << ", input idx: " << in_idx << "\n"; 
 				for(int kj = 0; kj < h; ++kj)
 				{
 					for(int ki = 0; ki < w; ++ki)
 					{
-						kidx = in_idx - (kRadius_w - ki) - ( (kRadius_h - kj)*w);
+						kidx = in_idx - (kRadius_w - ki) - ( (kRadius_h - kj)*n);
+						// std::cout<< "convolution multiplication, k: " << ki+kj*w << ", input: " << kidx << " , value: " << kernel[ki + kj*w] * imgIn[kidx] <<  "\n";
 						imgOut[out_idx] += kernel[ki + kj*w] * imgIn[kidx];
 					}
 				}
