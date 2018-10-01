@@ -32,7 +32,7 @@ void computeAbsArray(float *absarray, const float *array, size_t size)
     }
 }
 
-float computeEpsilonU(const float *imgIn, const float *gradU, const int size)
+float computeEpsilon(const float *imgIn, const float *gradU, const int size, const float smallnum)
 {
     // 5e-3*max(u(:))/max(1e-31,max(max(abs(gradu(:)))));
 
@@ -57,7 +57,7 @@ float computeEpsilonU(const float *imgIn, const float *gradU, const int size)
 
     maxElemU = computeMaxElem(imgIn, size);
 
-    eps = (0.005 * maxElemU ) * lower;
+    eps = (smallnum * maxElemU ) * lower;
 
     return eps;
 
