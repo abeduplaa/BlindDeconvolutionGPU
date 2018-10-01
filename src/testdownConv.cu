@@ -5,23 +5,24 @@
 
 void downConvTest(){
     
-    size_t nc = 3;
-    size_t w = 3; 
-    size_t h = 3;
+    size_t nc = 1;
+    size_t w = 7; 
+    size_t h = 11;
     size_t m = 9; 
     size_t n = 9;
-    size_t outSizeX = m-w+1;  
-    size_t outSizeY = n-h+1;
-    size_t inSize = w*h*nc;
+    size_t outSizeX = n-w+1;  
+    size_t outSizeY = m-h+1;
+    size_t inSize = m*n*nc;
+	size_t kernelSize = h*w;
     size_t outSize = outSizeX * outSizeY * nc;
     float* imgIn = new float[inSize];
     float* imgOut = new float[outSize];
     float* imgDownConv =  new float[outSize];
-    float* kernel = new float[m*n];
+    float* kernel = new float[kernelSize];
     for(int i=0; i<inSize; ++i)
         imgIn[i] = 1.0f;
-    for(int i=0; i<m*n; ++i)
-        kernel[i] = 0.5f;
+    for(int i=0; i<kernelSize; ++i)
+        kernel[i] = 1.0f;
 
     //CPU commands
     //padImgCPU(imgOut, imgIn, w, h, nc, m, n);
@@ -48,8 +49,8 @@ void downConvTest(){
     std::cout<<"Input Image"<<std::endl;
     for(int c=0; c<nc; ++c){
         std::cout<<"Channel no :  "<<c<<std::endl;
-        for(int j=0; j<h; ++j){
-            for(int i=0; i<w; ++i){
+        for(int j=0; j<m; ++j){
+            for(int i=0; i<n; ++i){
                 std::cout<<imgIn[i + (j*w) + (c*w*h)]<<"   ";
             }
             std::cout<<std::endl;
