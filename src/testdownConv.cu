@@ -1,7 +1,9 @@
-#include "downConvolution.cuh"
-#include "testdownConv.cuh"
 #include <iostream>
 
+#include "testdownConv.cuh"
+#include "downConvolution.cuh"
+#include "helper.cuh"
+#include "epsilon.cuh"
 
 void downConvTest(){
     
@@ -10,26 +12,49 @@ void downConvTest(){
     size_t h = 11;
     size_t m = 9; 
     size_t n = 9;
+    size_t inSizeX = n+1;
+    size_t inSizeY = m+1;
     size_t outSizeX = n-w+1;  
     size_t outSizeY = m-h+1;
     size_t inSize = m*n*nc;
 	size_t kernelSize = h*w;
     size_t outSize = outSizeX * outSizeY * nc;
+
+    float eps = 0;
+
     float* imgIn = new float[inSize];
+    float* dummyGradU = new float[inSize];
+
+    float* kernel = new float[kernelSize];
+
     float* imgOut = new float[outSize];
     float* imgDownConv =  new float[outSize];
-    float* kernel = new float[kernelSize];
-    for(int i=0; i<inSize; ++i)
-        imgIn[i] = 1.0f;
-    for(int i=0; i<kernelSize; ++i)
-        kernel[i] = 1.0f;
+    float* f = new float[outSize];
 
+
+    for(int i=0; i<inSize; i++)
+        imgIn[i] = 1.0f;
+        dummyGradU[i] = i*1.0f;
+
+    
+    for(int i=0; i<kernelSize; i++)
+        kernel[i] = 1.0f;
+    
+    for(int i=0; i<outSize ; i++)
+        f[i] = 3.2f;
+
+    
     //CPU commands
     //padImgCPU(imgOut, imgIn, w, h, nc, m, n);
     /*std::cout<<"padding done"<<std::endl;*/
     
     computeDownConvolutionCPU(imgDownConv, imgIn, kernel, w, h, nc, m, n);
 
+    eps = computeEpsilonU(imgIn, dummyGradU, inSize)
+
+    subtractArrays(imgOut,imgDownConv, f, outSize);
+
+    
     // //GPU commnds
     // float* d_imgIn = NULL;
     // float* d_imgOut = NULL;
@@ -78,6 +103,20 @@ void downConvTest(){
             std::cout<<std::endl;
         }
     }
+
+    std::cout<<"After subtraction"<< "\n";
+    for(int c=0; c<nc; ++c){
+        std::cout<<"Channel no :  "<<c<<std::endl;
+        for(int j=0; j<inSizeY; ++j){
+            for(int i=0; i<inSizeX; ++i){
+                std::cout<<imgOut[i + (j*inSizeX) + (c*inSizeX*inSizeY)]<<"   ";
+            }
+            std::cout<<std::endl;
+        }
+    }
+
+    std::cout<<"epsilon value: " << eps << "\n";
+
     //Free Cuda Memory
     // cudaFree(d_imgIn);
     // cudaFree(d_imgOut);
@@ -89,5 +128,7 @@ void downConvTest(){
     delete[] imgOut;
     delete[] imgDownConv;
     delete[] kernel;
+    delete[] dummyGradU;
+    delete[] f;
     
 }

@@ -4,9 +4,13 @@
 
 void computeEpsilonU();
 
-void computeEpsilonK();
+// void computeEpsilonK();
 
-void computeMaxArray(float *maxElem, const float *array, const float *size)
+float computeMaxElem(const float *array, const float size);
+
+void computeAbsArray(float *array, size_t size);
+
+float computeEpsilonU(const float *imgIn, const float *gradU, const float size)
 
 
 #endif  //  EPSILON_CUH

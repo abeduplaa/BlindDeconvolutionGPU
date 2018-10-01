@@ -169,4 +169,15 @@ void addNoise(cv::Mat &m, float sigma)
     }
 }
 
+// subtract 2 matrices:
+void subtractArrays(float *arrayOut,const float *A, const float *B, const int size)
+{
+    //0. check that arrays are the same size
 
+    //1. subtract A from B
+    //TODO: REPLACE THIS WITH CUBLAS LIBRARY SUBTRACTION FUNCTION
+    for(int i=0; i<size; i++)
+    {
+        arrayOut[i] = A[i] - B[i];
+    }
+}

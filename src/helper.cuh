@@ -63,6 +63,8 @@ void showHistogram256(const char *windowTitle, int *histogram, int windowX, int 
 // adding Gaussian noise
 void addNoise(cv::Mat &m, float sigma);
 
+// subtracting two arrays
+void subtractArrays(float *arrayOut,const float *A, const float *B, const int size);
 
 // measuring time
 class Timer
