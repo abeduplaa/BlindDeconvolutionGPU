@@ -23,16 +23,16 @@ float computeMaxElem(const float *array,const float size)
 }
 
 //void computeAbsArray(float *absArray, const float *array, size_t size)
-void computeAbsArray(float *array, size_t size)
+void computeAbsArray(float *absarray, const float *array, size_t size)
 {
     for(int i = 0; i<size; i++)
     {
         //absArray[i] = fabs(array[i]);
-        array[i] = fabs(array[i]);        
+        absarray[i] = fabs(array[i]);        
     }
 }
 
-float computeEpsilonU(const float *imgIn, float *gradU, const float size)
+float computeEpsilonU(const float *imgIn, const float *gradU, const int size)
 {
     // 5e-3*max(u(:))/max(1e-31,max(max(abs(gradu(:)))));
 
@@ -41,10 +41,11 @@ float computeEpsilonU(const float *imgIn, float *gradU, const float size)
     float maxElemU = 0;
     float lower = 0;
     float eps = 0;
+	float *absgradU = new float[size];
 
-    computeAbsArray(gradU, size);
+    computeAbsArray(absgradU, gradU, size);
     
-    maxGrad = computeMaxElem(gradU, size);
+    maxGrad = computeMaxElem(absgradU, size);
 
     if(1e-31 > maxGrad)
     {
