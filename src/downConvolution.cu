@@ -13,7 +13,11 @@ void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *k
 		throw "Kernel dimensions are too big!";
 	}
 
+
 	//1. define necessary variables
+	int out_idx = 0;
+	int in_idx = 0;
+	int kidx = 0;
 	size_t imgOut_h = m - h + 1;
 	size_t imgOut_w = n - w + 1;
 	int kRadius_w = (w-1)/2;

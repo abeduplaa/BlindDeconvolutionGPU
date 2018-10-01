@@ -3,7 +3,7 @@
 #include <iostream>
 
 
-int downConvTest(){
+void downConvTest(){
     
     size_t nc = 3;
     size_t w = 3; 

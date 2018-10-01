@@ -2,7 +2,7 @@
 #define TESTDOWNCONV_H
 
 
-int downConvTest();
+void downConvTest();
 
 
 #endif
