@@ -44,7 +44,7 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
 				for(int ki = 0; ki < w; ki++)
 				{
 					kidx = in_idx - (kRadius_w - ki) - ( (kRadius_h - kj)*w);
-					imgOut[imgOut] += kernel[ki + kj*w] * imgIn[kidx];
+					imgOut[out_idx] += kernel[ki + kj*w] * imgIn[kidx];
 				}
 			}
 		}
