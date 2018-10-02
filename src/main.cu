@@ -24,6 +24,7 @@ int main(int argc,char **argv) {
         "{mk|5|kernel width }"
         "{nk|5|kernel height}"
         "{cpu|false|compute on CPU}"
+        "{eps|1e-3| epsilon }"
        // "{m|mem|0|memory: 0=global, 1=shared, 2=texture}"
     };
     cv::CommandLineParser cmd(argc, argv, params);
@@ -37,6 +38,7 @@ int main(int argc,char **argv) {
 	 int mk = cmd.get<int>("mk");
 	 int nk = cmd.get<int>("nk");
      bool is_cpu = cmd.get<bool>("cpu");
+     float eps = cmd.get<float>("eps");
 
      std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
 
@@ -120,13 +122,13 @@ int main(int argc,char **argv) {
     cudaMalloc(&d_div , w * h * nc * sizeof(float)); CUDA_CHECK;
 
     // copy input data to GPU 
+	mIn /= 255.0f;
 	convertMatToLayered(imgIn, mIn);
     cudaMemcpy(d_imgIn, imgIn, w * h * nc * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
     
 
 
 	// convert range of each channel to [0,1]
-	mIn /= 255.0f;
 	// init raw input image array (and convert to layered)
 
 	// TODO IMPLEMENT THESE FUNCTIONS
@@ -137,7 +139,7 @@ int main(int argc,char **argv) {
                              d_dx_fw, d_dy_fw,
                              d_dx_bw, d_dy_bw,
                              d_dx_mixed, d_dy_mixed, 
-                             d_imgIn, w, h, nc);
+                             d_imgIn, w, h, nc, eps);
 
 	// padImage(imgIn);
 	// computeDeconvolution(imgOut, imgIn, kernel, w, h, nc);
@@ -152,22 +154,38 @@ int main(int argc,char **argv) {
     cv::Mat m_div(h, w, mIn.type());
     
     cudaMemcpy(dx_fw, d_dx_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
-    /*cudaMemcpy(dx_fw, d_dx_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;*/
-    /*cudaMemcpy(dy_fw, d_dy_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;*/
+    cudaMemcpy(dy_fw, d_dy_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+
+    cudaMemcpy(dx_bw, d_dx_bw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(dy_bw, d_dy_bw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+
+    cudaMemcpy(dx_mixed, d_dx_mixed, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost);
+    CUDA_CHECK;
+
+    cudaMemcpy(dy_mixed, d_dy_mixed, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost);
+    CUDA_CHECK;
+
+    cudaMemcpy(div, d_div, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
     // copy data from GPU to CPU
     float scale = 10.0;
     for (size_t i = 0; i < (w * h * nc); ++i) {
-        /*dx_fw[i] *= scale;*/
-        /*dy_fw[i] *= scale;*/
-        /*div[i] *= scale;*/
-        std::cout << i << "  ---  " << dx_fw[i] << std::endl;
+        dx_fw[i] *= scale;
+        dy_fw[i] *= scale;
+
+        dx_bw[i] *= scale;
+        dy_bw[i] *= scale;
+
+        dx_mixed[i] *= scale;
+        dy_mixed[i] *= scale;
+        div[i] *= scale;
+        /*std::cout << i << "  ---  " << dx_fw[i] << std::endl;*/
     }
     
 
 	// show output image: first convert to interleaved opencv format from the layered raw array
-    convertLayeredToMat(m_dx, dx_fw); 
-    convertLayeredToMat(m_dy, dy_fw); 
+    convertLayeredToMat(m_dx, dx_mixed); 
+    convertLayeredToMat(m_dy, dy_mixed); 
     convertLayeredToMat(m_div, div);
 
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
