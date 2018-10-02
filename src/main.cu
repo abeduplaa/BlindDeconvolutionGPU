@@ -33,6 +33,7 @@
         "{nk|5|kernel height}"
         "{cpu|false|compute on CPU}"
         "{eps|1e-3| epsilon }"
+        "{lamda|3.5e-4| lamda }"
        // "{m|mem|0|memory: 0=global, 1=shared, 2=texture}"
     };
     cv::CommandLineParser cmd(argc, argv, params);
@@ -46,6 +47,7 @@
 	 int mk = cmd.get<int>("mk");
 	 int nk = cmd.get<int>("nk");
      bool is_cpu = cmd.get<bool>("cpu");
+     float lamda = cmd.get<float>("lamda");
      float eps = cmd.get<float>("eps");
 
      std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
@@ -71,6 +73,8 @@
     int nc = mIn.channels();  // number of channels
 	size_t img_size = w * h * nc;
     std::cout << "Image: " << w << " x " << h  << " x " << nc << std::endl;
+
+    adjustImageSizeToOdd(mIn, w, h, nc);
 
     // init kernel
     size_t kn = mk * nk;
@@ -153,6 +157,7 @@
                              d_dx_mixed, d_dy_mixed, 
                              d_imgIn, w, h, nc, eps);
 
+
 	// padImage(imgIn);
 	// computeDeconvolution(imgOut, imgIn, kernel, w, h, nc);
 
@@ -180,7 +185,7 @@
     cudaMemcpy(div, d_div, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
     // copy data from GPU to CPU
-    float scale = 10.0;
+    float scale = 1.0;
     for (size_t i = 0; i < (w * h * nc); ++i) {
         dx_fw[i] *= scale;
         dy_fw[i] *= scale;
@@ -211,7 +216,7 @@
 
     // save results
     cv::imwrite("image_input.png",mIn*255.f); 
-    cv::imwrite("image_result.png",mOut*255.f);
+    cv::imwrite("image_result.png",m_div*255.f);
     /*cv::imwrite("image_kernel.png",mKernel*255.f);*/
 
     cv::waitKey(0);
