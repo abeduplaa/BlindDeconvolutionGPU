@@ -12,15 +12,16 @@
 #include "helper.cuh"
 #include "downConvolution.cuh"
 #include "testdownConv.cuh"
+#include "divergence.cuh"
 
 
-int main(int argc,char **argv)
-{
-    downConvTest();
-}
+/*int main(int argc,char **argv)*/
+/*{*/
+    /*downConvTest();*/
+/*}*/
 
 
-/* int main(int argc,char **argv) {
+ int main(int argc,char **argv) {
 
     // TODO: ADD COMMAND LINE FUNCTIONS LATER
 
@@ -140,7 +141,7 @@ int main(int argc,char **argv)
 	// convert range of each channel to [0,1]
 	// init raw input image array (and convert to layered)
 
-	`// TODO:  IMPLEMENT THESE FUNCTIONS
+	// TODO:  IMPLEMENT THESE FUNCTIONS
 	// 1. pre-process: pad image
 	
 
@@ -211,7 +212,7 @@ int main(int argc,char **argv)
     // save results
     cv::imwrite("image_input.png",mIn*255.f); 
     cv::imwrite("image_result.png",mOut*255.f);
-    cv::imwrite("image_kernel.png",mKernel*255.f);
+    /*cv::imwrite("image_kernel.png",mKernel*255.f);*/
 
     cv::waitKey(0);
 
@@ -246,7 +247,7 @@ int main(int argc,char **argv)
 
     return 0;
 } 
-*/
+
 
 
 
