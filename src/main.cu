@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <string>
+#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -18,11 +19,11 @@ int main(int argc,char **argv) {
 
     // parse command line parameters
     const char *params = {
-        "{i|image| |input image}"
-        "{b|bw|false|load input image as grayscale/black-white}"
-        "{m|mk|5|kernel width }"
-        "{n|nk|5|kernel height}"
-        "{c|cpu|false|compute on CPU}"
+        "{image| |input image}"
+        "{bw|false|load input image as grayscale/black-white}"
+        "{mk|5|kernel width }"
+        "{nk|5|kernel height}"
+        "{cpu|false|compute on CPU}"
        // "{m|mem|0|memory: 0=global, 1=shared, 2=texture}"
     };
     cv::CommandLineParser cmd(argc, argv, params);
@@ -59,7 +60,7 @@ int main(int argc,char **argv) {
     int h = mIn.rows;         // height
     int nc = mIn.channels();  // number of channels
 	size_t img_size = w * h * nc;
-    std::cout << "Image: " << w << " x " << h << std::endl;
+    std::cout << "Image: " << w << " x " << h  << " x " << nc << std::endl;
 
     // init kernel
     size_t kn = mk * nk;
@@ -67,7 +68,7 @@ int main(int argc,char **argv) {
     float *kernel = new float[kn * sizeof(float)];
 
     //  initialize kernel to uniform.
-	for(int i = 0; i < nc; i++) 
+	for(int i = 0; i < kn; i++) 
 		kernel[i] = kernel_init_value;
 
 
@@ -75,31 +76,51 @@ int main(int argc,char **argv) {
     // cudaDeviceSynchronize();
 
     // ### Set the output image format
-    cv::Mat mOut(h,w,mIn.type());  // grayscale or color depending on input image, nc layers
+    cv::Mat mOut(h, w, mIn.type());  // grayscale or color depending on input image, nc layers
 
     // ### Allocate arrays
     // allocate raw input image array
     float *imgIn = new float[img_size];
     float *imgOut = new float[img_size];
-    float *dx = new float[img_size];
-    float *dy = new float[img_size];
+    float *dx_fw = new float[img_size];
+    float *dy_fw = new float[img_size];
+    float *dx_bw = new float[img_size];
+    float *dy_bw = new float[img_size];
+    float *dx_mixed = new float[img_size];
+    float *dy_mixed = new float[img_size];
+
     float *div = new float[img_size];
 
     // allocate arrays on GPU
     float *d_imgIn = NULL;
     float *d_imgOut = NULL;
-    float *d_dx = NULL;
-    float *d_dy = NULL;
+
+    float *d_dx_fw = NULL;
+    float *d_dy_fw = NULL;
+    float *d_dx_bw = NULL;
+    float *d_dy_bw = NULL;
+    float *d_dx_mixed = NULL;
+    float *d_dy_mixed = NULL;
+
     float *d_div = NULL;
     // float *d_kernel = NULL;
 
     cudaMalloc(&d_imgIn, w * h * nc * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_imgOut , w * h * nc * sizeof(float)); CUDA_CHECK;
-    cudaMalloc(&d_dx , w * h * nc * sizeof(float)); CUDA_CHECK;
-    cudaMalloc(&d_dy , w * h * nc * sizeof(float)); CUDA_CHECK;
+
+    cudaMalloc(&d_dx_fw, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dy_fw, w * h * nc * sizeof(float)); CUDA_CHECK;
+
+    cudaMalloc(&d_dx_bw, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dy_bw, w * h * nc * sizeof(float)); CUDA_CHECK;
+
+    cudaMalloc(&d_dx_mixed, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dy_mixed, w * h * nc * sizeof(float)); CUDA_CHECK;
+
     cudaMalloc(&d_div , w * h * nc * sizeof(float)); CUDA_CHECK;
 
     // copy input data to GPU 
+	convertMatToLayered(imgIn, mIn);
     cudaMemcpy(d_imgIn, imgIn, w * h * nc * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
     
 
@@ -107,13 +128,16 @@ int main(int argc,char **argv) {
 	// convert range of each channel to [0,1]
 	mIn /= 255.0f;
 	// init raw input image array (and convert to layered)
-	convertMatToLayered(imgIn, mIn);
 
 	// TODO IMPLEMENT THESE FUNCTIONS
 	// 1. pre-process: pad image
 	// 2. perform blind de-convolution
 
-    computeDivergence(div, dx, dy, imgIn, w, h, nc);
+    computeDiffOperatorsCuda(d_div, 
+                             d_dx_fw, d_dy_fw,
+                             d_dx_bw, d_dy_bw,
+                             d_dx_mixed, d_dy_mixed, 
+                             d_imgIn, w, h, nc);
 
 	// padImage(imgIn);
 	// computeDeconvolution(imgOut, imgIn, kernel, w, h, nc);
@@ -127,18 +151,23 @@ int main(int argc,char **argv) {
     cv::Mat m_dy(h, w, mIn.type());
     cv::Mat m_div(h, w, mIn.type());
     
+    cudaMemcpy(dx_fw, d_dx_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    /*cudaMemcpy(dx_fw, d_dx_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;*/
+    /*cudaMemcpy(dy_fw, d_dy_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;*/
+
     // copy data from GPU to CPU
     float scale = 10.0;
     for (size_t i = 0; i < (w * h * nc); ++i) {
-        dx[i] *= scale;
-        dy[i] *= scale;
-        div[i] *= scale;
+        /*dx_fw[i] *= scale;*/
+        /*dy_fw[i] *= scale;*/
+        /*div[i] *= scale;*/
+        std::cout << i << "  ---  " << dx_fw[i] << std::endl;
     }
     
 
 	// show output image: first convert to interleaved opencv format from the layered raw array
-    convertLayeredToMat(m_dx, dx); 
-    convertLayeredToMat(m_dy, dy); 
+    convertLayeredToMat(m_dx, dx_fw); 
+    convertLayeredToMat(m_dy, dy_fw); 
     convertLayeredToMat(m_div, div);
 
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
@@ -160,15 +189,27 @@ int main(int argc,char **argv) {
     // Free allocated arrays
     delete [] imgIn;
     delete [] imgOut;
-    delete [] dx;
-    delete [] dy;
+
+    delete [] dx_fw;
+    delete [] dy_fw;
+    delete [] dx_bw;
+    delete [] dx_bw;
+    delete [] dy_mixed;
+    delete [] dy_mixed;
+
     delete [] div;
     delete [] kernel;
 
     cudaFree(d_imgIn); CUDA_CHECK;
     cudaFree(d_imgOut); CUDA_CHECK;
-    cudaFree(d_dx); CUDA_CHECK;
-    cudaFree(d_dy); CUDA_CHECK;
+
+    cudaFree(d_dx_fw); CUDA_CHECK;
+    cudaFree(d_dy_fw); CUDA_CHECK;
+    cudaFree(d_dx_bw); CUDA_CHECK;
+    cudaFree(d_dy_bw); CUDA_CHECK;
+    cudaFree(d_dx_mixed); CUDA_CHECK;
+    cudaFree(d_dy_mixed); CUDA_CHECK;
+
     cudaFree(d_div); CUDA_CHECK;
 
     // close all opencv windows
