@@ -19,22 +19,26 @@
 #define CUDA_CHECK cuda_check(__FILE__,__LINE__)
 void cuda_check(std::string file, int line);
 
+
+// compute index within 1d array 
+inline __host__ __device__ int getIndex(int i, int j, int width) {
+    return i + j * width;
+}
+
+
 // compute grid size from block size
 inline dim3 computeGrid1D(const dim3 &block, const int w) {
-    // TODO (3.2) compute 1D grid size from block size
     int num_blocks_x = (w + block.x - 1) / block.x;
     return dim3(num_blocks_x, 1, 1);
 }
 
 inline dim3 computeGrid2D(const dim3 &block, const int w, const int h) {
-    // TODO (3.2) compute 2D grid size from block size
     int num_blocks_x = (w + block.x - 1) / block.x;
     int num_blocks_y = (h + block.y - 1) / block.y;
     return dim3(num_blocks_x, num_blocks_y, 1);
 }
 
 inline dim3 computeGrid3D(const dim3 &block, const int w, const int h, const int s) {
-    // TODO (3.2) compute 3D grid size from block size
     int num_blocks_x = (w + block.x - 1) / block.x;
     int num_blocks_y = (h + block.y - 1) / block.y;
     int num_blocks_z = (s + block.z - 1) / block.z;

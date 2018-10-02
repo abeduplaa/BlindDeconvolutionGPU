@@ -4,4 +4,6 @@
 *.log
 *.png
 src/build
+src/tags
+src/update.sh
 
