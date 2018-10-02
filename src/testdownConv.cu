@@ -1,4 +1,5 @@
 #include <iostream>
+// #include <algorithm>
 
 #include "testdownConv.cuh"
 #include "downConvolution.cuh"
@@ -27,10 +28,11 @@ void downConvTest(){
 
     float* kernel = new float[kernelSize];
 
-    float* imgOut = new float[outSize];
+    float* imgOut = new float[outSize]();
     float* imgDownConv =  new float[outSize];
     float* f = new float[outSize];
 
+	// std::fill_n(imgDownConv,outSize,0.0f)'
 
     for(int i=0; i<inSize; i++)
     {
@@ -52,7 +54,7 @@ void downConvTest(){
     
     computeDownConvolutionCPU(imgDownConv, imgIn, kernel, w, h, nc, m, n);
 
-    eps = computeEpsilonU(imgIn, dummyGradU, inSize);
+    eps = computeEpsilon(imgIn, dummyGradU, inSize, 0.005);
 
     subtractArrays(imgOut,imgDownConv, f, outSize);
 
