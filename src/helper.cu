@@ -13,14 +13,14 @@
 // cuda error checking
 std::string prev_file = "";
 int prev_line = 0;
-void cuda_check(std::string file, int line)
-{
+void cuda_check(std::string file, int line) {
     cudaError_t e = cudaGetLastError();
-    if (e != cudaSuccess)
-    {
-        std::cout << std::endl << file << ", line " << line << ": " << cudaGetErrorString(e) << " (" << e << ")" << std::endl;
+    if (e != cudaSuccess) {
+        std::cout << std::endl << file << ", line " << line 
+                  << ": " << cudaGetErrorString(e) << " (" << e << ")" << std::endl;
         if (prev_line > 0)
-            std::cout << "Previous CUDA call:" << std::endl << prev_file << ", line " << prev_line << std::endl;
+            std::cout << "Previous CUDA call:" << std::endl 
+                      << prev_file << ", line " << prev_line << std::endl;
         exit(1);
     }
     prev_file = file;
@@ -89,8 +89,7 @@ void convertInterleavedToLayered(float *aOut, const float *aIn, int w, int h, in
     }
 }
 
-void convertMatToLayered(float *aOut, const cv::Mat &mIn)
-{
+void convertMatToLayered(float *aOut, const cv::Mat &mIn) {
     convertInterleavedToLayered(aOut, (float*)mIn.data, mIn.cols, mIn.rows, mIn.channels());
 }
 
@@ -145,6 +144,7 @@ void showHistogram256(const char *windowTitle, int *histogram, int windowX, int 
     }
 
     showImage(windowTitle, canvas, windowX, windowY);
+    cv::imwrite("histogram.png",canvas*255.f);
 }
 
 
@@ -166,5 +166,18 @@ void addNoise(cv::Mat &m, float sigma)
     for(size_t i=0; i<n; i++)
     {
         data[i] += noise(sigma);
+    }
+}
+
+// subtract 2 matrices:
+void subtractArrays(float *arrayOut,const float *A, const float *B, const int size)
+{
+    //0. check that arrays are the same size
+
+    //1. subtract A from B
+    //TODO: REPLACE THIS WITH CUBLAS LIBRARY SUBTRACTION FUNCTION
+    for(int i=0; i<size; i++)
+    {
+        arrayOut[i] = A[i] - B[i];
     }
 }
