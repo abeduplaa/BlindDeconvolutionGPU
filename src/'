@@ -74,8 +74,7 @@
 	size_t img_size = w * h * nc;
     std::cout << "Image: " << w << " x " << h  << " x " << nc << std::endl;
 
-    // TODO: complete function
-    /*adjustImageSizeToOdd(mIn, w, h, nc);*/
+    adjustImageSizeToOdd(mIn, w, h, nc);
 
     // init kernel
     size_t kn = mk * nk;
@@ -98,7 +97,7 @@
     // allocate raw input image array
     float *imgIn = new float[img_size];
     float *imgInPad = new float[img_size]; //TODO: check size (RAVI)
-    float *imgOut = new float[img_size];
+    float *imgOut = new float[img_size]0;
     float *dx_fw = new float[img_size];
     float *dy_fw = new float[img_size];
     float *dx_bw = new float[img_size];
