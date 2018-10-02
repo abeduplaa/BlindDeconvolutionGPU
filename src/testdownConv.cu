@@ -9,11 +9,11 @@
 void downConvTest(){
     
     // Initialize variables
-    size_t nc = 1;
-    size_t w = 3; 
-    size_t h = 3;
-    size_t m = 7; 
-    size_t n = 7;
+    size_t nc = 2;
+    size_t w = 5; 
+    size_t h = 9;
+    size_t m = 17; 
+    size_t n = 11;
     size_t inSizeX = n+1;
     size_t inSizeY = m+1;
     size_t outSizeX = n-w+1;  
@@ -43,7 +43,7 @@ void downConvTest(){
     
     for(int i=0; i<kernelSize; i++)
     {
-        kernel[i] = .5f;
+        kernel[i] = .35f;
     }    
     
     for(int i=0; i<outSize ; i++)
@@ -68,7 +68,7 @@ void downConvTest(){
     
     // Copy arrays from CPU to GPU:
     cudaMemcpy(d_imgIn, imgIn, inSize*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_kernel, kernel, m*n*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_kernel, kernel, kernelSize*sizeof(float), cudaMemcpyHostToDevice);
     
     // Compute downconvolution:
     computeDownConvolutionGlobalMemCuda(d_imgDownConv, d_imgIn, d_kernel, w, h, nc, m, n);

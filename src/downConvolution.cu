@@ -30,12 +30,12 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
 
 	//2. compute downconvolution
 
-	if(idx < imgOut_w && idy < imgOut_h)
+	//if(idx < imgOut_w && idy < imgOut_h) //why is this incorrect?
+	if(idx < n + w && idy < m + h )
 	{
 		for(int c = 0; c < nc; c++)
 		{
 			out_idx = i + (c*imgOut_h*imgOut_w);
-			
 			in_idx = out_idx + (kRadius_h*n) + kRadius_w + (kRadius_w*2)*idy;
 			imgOut[out_idx] = 0.0f;
 			
@@ -44,8 +44,7 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
 				for(int ki = 0; ki < w; ki++)
 				{
 					kidx = in_idx - (kRadius_w - ki) - ( (kRadius_h - kj)*w);
-					// imgOut[out_idx] += kernel[ki + kj*w] * imgIn[kidx];
-					imgOut[out_idx] =  imgIn[kidx];
+					imgOut[out_idx] += kernel[ki + kj*w]* imgIn[kidx];
 				}
 			}
 		}
