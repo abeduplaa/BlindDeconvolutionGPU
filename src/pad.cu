@@ -58,12 +58,12 @@ void padImgGlobalMemCuda(float *imgOut, const float *imgIn,
         std::cout << "output not allocated" << std::endl;         
         return;   
     }
-    if (!imgOut || !imgIn)
-    {
-        std::cerr << "arrays not allocated!" << std::endl;
-        return;
+    /*if (!imgOut || !imgIn)*/
+    /*{*/
+        /*std::cerr << "arrays not allocated!" << std::endl;*/
+        /*return;*/
                             
-    }
+    /*}*/
 
     // allocate block and grid size
     dim3 block(32, 8, 1);

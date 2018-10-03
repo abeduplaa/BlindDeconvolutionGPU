@@ -6,7 +6,7 @@
 DATA_FOLDER=../sequential/data
 #IMAGE=gaudi.png
 IMAGE=postcard.png
-EXE_FILE=./build/deblur
+EXE_FILE=./deblur
 
 if [ ! -f $EXE_FILE ]; then
     echo "Good job! you forgot to compile your awesome code"

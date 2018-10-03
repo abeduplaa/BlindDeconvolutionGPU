@@ -13,7 +13,9 @@
 #include "downConvolution.cuh"
 #include "testdownConv.cuh"
 #include "divergence.cuh"
-
+#include "adjustImage.cuh"
+#include "pad.cuh"
+#include "upConvolution.cuh"
 
 /*int main(int argc,char **argv)*/
 /*{*/
@@ -33,7 +35,7 @@
         "{nk|5|kernel height}"
         "{cpu|false|compute on CPU}"
         "{eps|1e-3| epsilon }"
-        "{lamda|3.5e-4| lamda }"
+        "{lambda|0.0068| lambda }"
        // "{m|mem|0|memory: 0=global, 1=shared, 2=texture}"
     };
     cv::CommandLineParser cmd(argc, argv, params);
@@ -44,10 +46,10 @@
     // size_t repeats = (size_t)cmd.get<int>("repeats");
     // load the input image as grayscale
      bool gray = cmd.get<bool>("bw");
-	 int mk = cmd.get<int>("mk");
-	 int nk = cmd.get<int>("nk");
+	 int mk = cmd.get<int>("mk"); mk = (mk==0)?5:mk;
+	 int nk = cmd.get<int>("nk"); nk = (nk==0)?5:nk;
      bool is_cpu = cmd.get<bool>("cpu");
-     float lamda = cmd.get<float>("lamda");
+     float lambda = cmd.get<float>("lambda"); lambda = (lambda==0)?0.0068:lambda;
      float eps = cmd.get<float>("eps");
 
      std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
@@ -71,21 +73,21 @@
     int w = mIn.cols;         // width
     int h = mIn.rows;         // height
     int nc = mIn.channels();  // number of channels
-	size_t img_size = w * h * nc;
-    std::cout << "Image: " << w << " x " << h  << " x " << nc << std::endl;
+    std::cout << "Original Image: " << w << " x " << h  << " x " << nc << std::endl;
+    adjustImageSizeToOdd(mIn, w, h, nc);
 
-    // TODO: complete function
-    /*adjustImageSizeToOdd(mIn, w, h, nc);*/
+	size_t img_size = w * h * nc;
+    size_t padw = w + mk - 1;
+    size_t padh = h + nk - 1;
+    size_t pad_img_size = padw * padh * nc;
+    std::cout << "Image after Cropping: " << w << " x " << h  << " x " << nc << std::endl;
+    std::cout << "Pad Image size" << padw << " x " << padh << " x " << nc << std::endl;
 
     // init kernel
-    size_t kn = mk * nk;
-	float kernel_init_value = 1.0 / kn;
+    size_t kn = mk*nk;
     float *kernel = new float[kn * sizeof(float)];
-
     //  initialize kernel to uniform.
-	for(int i = 0; i < kn; i++) 
-		kernel[i] = kernel_init_value;
-
+    initialiseKernel(kernel, mk, nk);
 
     // initialize CUDA context
     // cudaDeviceSynchronize();
@@ -94,19 +96,17 @@
     cv::Mat mOut(h, w, mIn.type());  // grayscale or color depending on input image, nc layers
 
     // ### Allocate arrays
-    // TODO: CHANGE IMAGE AND IMAGE SIZE TO MAKE ODD IN EACH DIMENSION
-    // allocate raw input image array
     float *imgIn = new float[img_size];
-    float *imgInPad = new float[img_size]; //TODO: check size (RAVI)
-    float *imgOut = new float[img_size];
-    float *dx_fw = new float[img_size];
-    float *dy_fw = new float[img_size];
-    float *dx_bw = new float[img_size];
-    float *dy_bw = new float[img_size];
-    float *dx_mixed = new float[img_size];
-    float *dy_mixed = new float[img_size];
+    float *imgInPad = new float[pad_img_size]; //TODO: check size (RAVI)
+    float *imgOut = new float[pad_img_size];
+    float *dx_fw = new float[pad_img_size];
+    float *dy_fw = new float[pad_img_size];
+    float *dx_bw = new float[pad_img_size];
+    float *dy_bw = new float[pad_img_size];
+    float *dx_mixed = new float[pad_img_size];
+    float *dy_mixed = new float[pad_img_size];
 
-    float *div = new float[img_size];
+    float *div = new float[pad_img_size];
 
     // TODO: ALLOCATE MEMORY ON GPU
     // allocate arrays on GPU
@@ -124,38 +124,36 @@
     float *d_div = NULL;
     // float *d_kernel = NULL;
 
-    cudaMalloc(&d_imgIn, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_imgIn, img_size * sizeof(float)); CUDA_CHECK;
 
     // TODO: be sure the size id right (RAVI)
-    cudaMalloc(&d_imgInPad, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_imgInPad, pad_img_size * sizeof(float)); CUDA_CHECK;
 
-    cudaMalloc(&d_imgOut , w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_imgOut , pad_img_size * sizeof(float)); CUDA_CHECK;
 
-    cudaMalloc(&d_dx_fw, w * h * nc * sizeof(float)); CUDA_CHECK;
-    cudaMalloc(&d_dy_fw, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dx_fw, pad_img_size * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dy_fw, pad_img_size * sizeof(float)); CUDA_CHECK;
 
-    cudaMalloc(&d_dx_bw, w * h * nc * sizeof(float)); CUDA_CHECK;
-    cudaMalloc(&d_dy_bw, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dx_bw, pad_img_size * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dy_bw, pad_img_size * sizeof(float)); CUDA_CHECK;
 
-    cudaMalloc(&d_dx_mixed, w * h * nc * sizeof(float)); CUDA_CHECK;
-    cudaMalloc(&d_dy_mixed, w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dx_mixed, pad_img_size * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_dy_mixed, pad_img_size * sizeof(float)); CUDA_CHECK;
 
-    cudaMalloc(&d_div , w * h * nc * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_div , pad_img_size * sizeof(float)); CUDA_CHECK;
 
 	mIn /= 255.0f;
 	convertMatToLayered(imgIn, mIn);
-    cudaMemcpy(d_imgIn, imgIn, w * h * nc * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
+    cudaMemcpy(d_imgIn, imgIn, img_size * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
 
-    // TODO: make it run and visualize results to be sure
-    // everything is correct (RAVI)
-    /*padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, m, n); */
+    padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, mk, nk);
 
     // compute gradient and divergence
     computeDiffOperatorsCuda(d_div, 
                              d_dx_fw, d_dy_fw,
                              d_dx_bw, d_dy_bw,
                              d_dx_mixed, d_dy_mixed, 
-                             d_imgIn, w, h, nc, lamda, eps);
+                             d_imgInPad, padw, padh, nc, lambda, eps);
 
     // TODO: check the parameters list
     // TODO: Switch params in function
@@ -196,27 +194,29 @@
 
 	// show input image
     
-    cv::Mat m_dx(h, w, mIn.type());
-    cv::Mat m_dy(h, w, mIn.type());
-    cv::Mat m_div(h, w, mIn.type());
+    cv::Mat m_dx(padh, padw, mIn.type());
+    cv::Mat m_dy(padh, padw, mIn.type());
+    cv::Mat m_div(padh, padw, mIn.type());
+    cv::Mat mPadImg(padh, padw, mIn.type());
     
-    cudaMemcpy(dx_fw, d_dx_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
-    cudaMemcpy(dy_fw, d_dy_fw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(dx_fw, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(imgInPad, d_imgInPad, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(dy_fw, d_dy_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
-    cudaMemcpy(dx_bw, d_dx_bw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
-    cudaMemcpy(dy_bw, d_dy_bw, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(dx_bw, d_dx_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(dy_bw, d_dy_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
-    cudaMemcpy(dx_mixed, d_dx_mixed, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(dx_mixed, d_dx_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
 
-    cudaMemcpy(dy_mixed, d_dy_mixed, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
 
-    cudaMemcpy(div, d_div, w * h * nc * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(div, d_div, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
-    // copy data from GPU to CPU
-    float scale = 1.0;
-    for (size_t i = 0; i < (w * h * nc); ++i) {
+    //copy data from GPU to CPU
+    float scale = 10.0;
+    for (size_t i = 0; i < pad_img_size; ++i) {
         dx_fw[i] *= scale;
         dy_fw[i] *= scale;
 
@@ -234,19 +234,21 @@
     convertLayeredToMat(m_dx, dx_mixed); 
     convertLayeredToMat(m_dy, dy_mixed); 
     convertLayeredToMat(m_div, div);
+    convertLayeredToMat(mPadImg, imgInPad);
 
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
     showImage("Input", mIn, pos_orig_x, pos_orig_y);
     showImage("dx", m_dx, pos_orig_x + w, pos_orig_y);
     showImage("dy", m_dy, pos_orig_x, pos_orig_y + w + shift_y);
     showImage("divergence", m_div, pos_orig_x + w, pos_orig_y + w + shift_y);
+    showImage("Pad", mPadImg, 100, 140);
 
 	//convertLayeredToMat(mOut, imgOut);
 	//showImage("Output", mOut, 100+w+40, 100);
 
     // save results
-    cv::imwrite("image_input.png",mIn*255.f); 
-    cv::imwrite("image_result.png",m_div*255.f);
+    /*cv::imwrite("image_input.png",mIn*255.f); */
+    /*cv::imwrite("image_result.png",m_div*255.f);*/
     /*cv::imwrite("image_kernel.png",mKernel*255.f);*/
 
     cv::waitKey(0);
@@ -259,8 +261,8 @@
     delete [] dx_fw;
     delete [] dy_fw;
     delete [] dx_bw;
-    delete [] dx_bw;
-    delete [] dy_mixed;
+    delete [] dy_bw;
+    delete [] dx_mixed;
     delete [] dy_mixed;
 
     delete [] div;
