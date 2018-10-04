@@ -17,6 +17,8 @@
 #include "pad.cuh"
 #include "upConvolution.cuh"
 
+#include "cublas_v2.h"
+
 /*int main(int argc,char **argv)*/
 /*{*/
     /*downConvTest();*/
@@ -92,6 +94,10 @@
     // initialize CUDA context
     // cudaDeviceSynchronize();
 
+    // Initialize Cublas
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+
     // ### Set the output image format
     cv::Mat mOut(h, w, mIn.type());  // grayscale or color depending on input image, nc layers
 
@@ -155,22 +161,32 @@
                              d_dx_mixed, d_dy_mixed, 
                              d_imgInPad, padw, padh, nc, lambda, eps);
 
-    // TODO: check the parameters list
-    // TODO: Switch params in function
-    /*computeDownConvolutionGlobalMemCuda(imgOut, imgInPad, kernel, w+m-1, h+n-1, nc, m, n);*/
+    // DONE: check the parameters list
+    // DONE: Switch params in function
+    computeDownConvolutionGlobalMemCuda(imgOut, 
+                                        imgInPad, 
+                                        kernel, 
+                                        w+n-1, 
+                                        h+m-1, 
+                                        nc, 
+                                        m, n);
 
-    // TODO: cublas subtract k(+)*u - f. Move that to a separate function
-
+    // DONE: cublas subtract k(+)*u - f. Move that to a separate function
+    //subtractArraysCUBLAS(handle, imgOut, f, -1.0f, nc*(w-n+1)*(h-m+1) );
+    
     // TODO: compute(mirror, rotate) kernel
 
     // TODO: check the list of  parameters 
     /*computeUpConvolutionGlobalMemCuda(imgOut, imgInPad, kernel, w, h, nc, m, n);*/
 
     // TODO: subtract the divergence from upconvolution result (RAVIL)
-
+    //subtractArraysCUBLAS(handle, imgOut, f, -1.0f, nc*(w-n+1)*(h-m+1) );
     // TODO: compute epsilon on GPU
+    // computeEpsilonCuda(handle, imgOut, grad, nc*(w-n+1)*(h-m+1), 5e-3)
 
     // TODO: update output image u = u - eps*grad
+    //subtractArraysCUBLAS(handle, imgOut, f, eps, nc*(w-n+1)*(h-m+1) );
+    // USE CUBLAS AXPY() FUNCTION HERE
     // copy input data to GPU 
     
 
