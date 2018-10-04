@@ -111,6 +111,7 @@
     float *dy_bw = new float[pad_img_size];
     float *dx_mixed = new float[pad_img_size];
     float *dy_mixed = new float[pad_img_size];
+    float *imgDownConv0 = new float[img_size];
 
     float *div = new float[pad_img_size];
 
@@ -126,6 +127,8 @@
     float *d_dy_bw = NULL;
     float *d_dx_mixed = NULL;
     float *d_dy_mixed = NULL;
+
+    float *d_imgDownConv0 = NULL;
 
     float *d_div = NULL;
     float *d_kernel = NULL;
@@ -151,6 +154,8 @@
 
     cudaMalloc(&d_div , pad_img_size * sizeof(float)); CUDA_CHECK;
 
+    cudaMalloc(&d_imgDownConv0, img_size * sizeof(float)); CUDA_CHECK;
+
 	mIn /= 255.0f;
 	convertMatToLayered(imgIn, mIn);
     cudaMemcpy(d_imgIn, imgIn, img_size * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
@@ -170,19 +175,19 @@
 
     // DONE: check the parameters list
     // DONE: Switch params in function
-    computeDownConvolutionGlobalMemCuda(imgOut, 
-                                        imgInPad, 
+    computeDownConvolutionGlobalMemCuda(d_imgDownConv0, 
+                                        d_imgInPad, 
                                         kernel, 
-                                        w+n-1, 
-                                        h+m-1, 
+                                        padw, 
+                                        padh, 
                                         nc, 
-                                        m, n);
+                                        mk, nk);
 
     // DONE: cublas subtract k(+)*u - f. Move that to a separate function
     //cublasSaxpy(handle, n, alpha, x, 1, y, 1);
     
     // TODO: compute(mirror, rotate) kernel
-    rotateKernel_180(d_kernel_rot_180, d_kernel, mk, nk); 
+    /*rotateKernel_180(d_kernel_rot_180, d_kernel, mk, nk); */
 
     // TODO: check the list of  parameters 
     /*computeUpConvolutionGlobalMemCuda(imgOut, imgInPad, kernel, w, h, nc, m, n);*/
@@ -222,6 +227,7 @@
     cv::Mat m_dy(padh, padw, mIn.type());
     cv::Mat m_div(padh, padw, mIn.type());
     cv::Mat mPadImg(padh, padw, mIn.type());
+    cv::Mat mImgDownConv0(h, w, mIn.type());
     
     cudaMemcpy(dx_fw, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(imgInPad, d_imgInPad, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
@@ -234,6 +240,9 @@
     CUDA_CHECK;
 
     cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+    CUDA_CHECK;
+
+    cudaMemcpy(imgDownConv0, d_imgDownConv0, img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
 
     cudaMemcpy(div, d_div, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
@@ -259,6 +268,7 @@
     convertLayeredToMat(m_dy, dy_mixed); 
     convertLayeredToMat(m_div, div);
     convertLayeredToMat(mPadImg, imgInPad);
+    convertLayeredToMat(mImgDownConv0, imgDownConv0);
 
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
     showImage("Input", mIn, pos_orig_x, pos_orig_y);
@@ -266,6 +276,7 @@
     showImage("dy", m_dy, pos_orig_x, pos_orig_y + w + shift_y);
     showImage("divergence", m_div, pos_orig_x + w, pos_orig_y + w + shift_y);
     showImage("Pad", mPadImg, 100, 140);
+    showImage("Down Conv 0", mImgDownConv0, 200, 240);
 
 	//convertLayeredToMat(mOut, imgOut);
 	//showImage("Output", mOut, 100+w+40, 100);
@@ -289,6 +300,8 @@
     delete [] dx_mixed;
     delete [] dy_mixed;
 
+    delete [] imgDownConv0;
+
     delete [] div;
     delete [] kernel;
 
@@ -304,6 +317,8 @@
     cudaFree(d_dy_bw); CUDA_CHECK;
     cudaFree(d_dx_mixed); CUDA_CHECK;
     cudaFree(d_dy_mixed); CUDA_CHECK;
+
+    cudaFree(d_imgDownConv0); CUDA_CHECK;
 
     cudaFree(d_div); CUDA_CHECK;
 
