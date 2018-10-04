@@ -10,16 +10,17 @@
 float computeEpsilonCuda(cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
 {
     //initialize indices:
-    int *a_i = NULL;
-    int *grad_i = NULL;
+    int a_i = NULL;
+    int grad_i = NULL;
     
     // call cublas functions:
-    absMaxIdCUBLAS(handle, size, a, 1, a_i);
+    absMaxIdCUBLAS(handle, size, a, 1, &a_i);
 
-    absMaxIdCUBLAS(handle, size, grad, 1, grad_i);
+    absMaxIdCUBLAS(handle, size, grad, 1, &grad_i);
+
 
     // calling cuda kernel
-    return (smallnum * a[*a_i]) * ( ( grad[*grad_i] < 1e31) ? (1.0/grad[*grad_i]) : (1e-31) );
+    return (smallnum * a[a_i]) * ( ( grad[grad_i] < 1e31) ? (1.0/grad[grad_i]) : (1e-31) );
 
 }
 
