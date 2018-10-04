@@ -97,7 +97,8 @@ void downConvTest(){
 	
     // Calculate epsilon using CUBLAS
     //eps = computeEpsilonCuda(handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
-    computeEpsilonGlobalMemCuda(&eps, handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
+    
+	//computeEpsilonGlobalMemCuda(&eps, handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
     
     // Copy results back to CPU for visualization:
     cudaMemcpy(imgDownConvGPU, d_imgDownConv, outSize*sizeof(float), cudaMemcpyDeviceToHost);

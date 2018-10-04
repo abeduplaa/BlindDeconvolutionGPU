@@ -9,20 +9,12 @@
 
 
 __global__
-void computeEpsilonGlobalMemKernel(float *eps, cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
+void computeEpsilonGlobalMemKernel(float *eps, const float *a, const int a_i, const float *grad, const int grad_i, const float smallnum)
 {
-    //initialize indices:
-    int a_i = NULL;
-    int grad_i = NULL;
-    
-    // call cublas functions:
-    absMaxIdCUBLAS(handle, size, a, 1, &a_i);
-
-    absMaxIdCUBLAS(handle, size, grad, 1, &grad_i);
-
-
+	// int idx = threadIdx.x + blockIdx.x*blockDim.x;
+	// int idy = threadIdx.y + blockIdx.y*blockDim.y;
     // calling cuda kernel
-    eps = (smallnum * a[a_i]) * ( ( grad[grad_i] < 1e31) ? (1.0/grad[grad_i]) : (1e-31) );
+    *eps = (smallnum * a[a_i]) * ( ( grad[grad_i] < 1e31) ? (1.0/grad[grad_i]) : (1e-31) );
     
 }
 
@@ -31,10 +23,20 @@ void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float 
 {
     	// allocate block and grid size
 	dim3 block(32, 8, 1);
-	dim3 grid = computeGrid2D(block, m - h + 1, n - w + 1);
+	//dim3 grid = computeGrid2D(block, m - h + 1, n - w + 1);
+	dim3 grid = computeGrid2D(block, 8, 8);
 
+    //initialize indices:
+    int a_i = NULL;
+    int grad_i = NULL;
+    
+    // call cublas functions:
+    absMaxIdCUBLAS(handle, size, a, 1, &a_i);
+
+    absMaxIdCUBLAS(handle, size, grad, 1, &grad_i);
+	
 	//calling cuda kernel
-    computeEpsilonGlobalMemKernel <<<grid,block>>> (eps, handle, a, grad, size, smallnum);
+    computeEpsilonGlobalMemKernel <<<grid,block>>> (eps, a, a_i, grad, grad_i, smallnum);
 }
 
 
