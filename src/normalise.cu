@@ -18,7 +18,7 @@ void normaliseGlobalMemCuda(float* kernel, const int m, const int n){
     }
     // allocate block and grid size
     dim3 block(32, 8, 1);
-    dim3 grid = computeGrid2D(block, w + m - 1, h + n - 1);
+    dim3 grid = computeGrid2D(block, m, n);
     
     float norm1 = 0.0;
     cublasHandle_t handle;

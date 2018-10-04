@@ -26,6 +26,7 @@ inline __host__ __device__ int getIndex(int i, int j, int width) {
 }
 
 
+
 // compute grid size from block size
 inline dim3 computeGrid1D(const dim3 &block, const int w) {
     int num_blocks_x = (w + block.x - 1) / block.x;

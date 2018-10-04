@@ -46,10 +46,10 @@
     // size_t repeats = (size_t)cmd.get<int>("repeats");
     // load the input image as grayscale
      bool gray = cmd.get<bool>("bw");
-	 int mk = cmd.get<int>("mk"); mk = (mk==0)?5:mk;
-	 int nk = cmd.get<int>("nk"); nk = (nk==0)?5:nk;
+	 int mk = cmd.get<int>("mk"); mk = (mk <= 0) ? 5 : mk;
+	 int nk = cmd.get<int>("nk"); nk = (nk <= 0) ? 5 : nk;
      bool is_cpu = cmd.get<bool>("cpu");
-     float lambda = cmd.get<float>("lambda"); lambda = (lambda==0)?0.0068:lambda;
+     float lambda = cmd.get<float>("lambda"); lambda = (lambda <= 0) ? 0.0068 : lambda;
      float eps = cmd.get<float>("eps");
 
      std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
@@ -122,14 +122,17 @@
     float *d_dy_mixed = NULL;
 
     float *d_div = NULL;
-    // float *d_kernel = NULL;
+    float *d_kernel = NULL;
+    float *d_kernel_rot_180 = NULL;
 
     cudaMalloc(&d_imgIn, img_size * sizeof(float)); CUDA_CHECK;
 
     // TODO: be sure the size id right (RAVI)
     cudaMalloc(&d_imgInPad, pad_img_size * sizeof(float)); CUDA_CHECK;
-
     cudaMalloc(&d_imgOut , pad_img_size * sizeof(float)); CUDA_CHECK;
+
+    cudaMalloc(&d_kernel, kn * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_kernel_rot_180, kn  * sizeof(float)); CUDA_CHECK;
 
     cudaMalloc(&d_dx_fw, pad_img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_dy_fw, pad_img_size * sizeof(float)); CUDA_CHECK;
@@ -145,6 +148,10 @@
 	mIn /= 255.0f;
 	convertMatToLayered(imgIn, mIn);
     cudaMemcpy(d_imgIn, imgIn, img_size * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
+    cudaMemcpy(d_kernel, kernel, kn * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
+
+
+
 
     padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, mk, nk);
 
@@ -162,6 +169,7 @@
     // TODO: cublas subtract k(+)*u - f. Move that to a separate function
 
     // TODO: compute(mirror, rotate) kernel
+    rotateKernel_180(d_kernel_rot_180, d_kernel, mk, nk); 
 
     // TODO: check the list of  parameters 
     /*computeUpConvolutionGlobalMemCuda(imgOut, imgInPad, kernel, w, h, nc, m, n);*/
@@ -271,6 +279,8 @@
     cudaFree(d_imgIn); CUDA_CHECK;
     cudaFree(d_imgInPad); CUDA_CHECK;
     cudaFree(d_imgOut); CUDA_CHECK;
+    cudaFree(d_kernel); CUDA_CHECK;
+    cudaFree(d_kernel_rot_180); CUDA_CHECK;
 
     cudaFree(d_dx_fw); CUDA_CHECK;
     cudaFree(d_dy_fw); CUDA_CHECK;
