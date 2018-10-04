@@ -33,7 +33,7 @@ void downConvTest(){
 
     // allocate memory for arrays
     float* imgIn = new float[inSize];
-    float* dummyGradU = new float[inSize];
+    float* dummyGradU = new float[outSize];
 
     float* kernel = new float[kernelSize];
 
@@ -45,7 +45,6 @@ void downConvTest(){
     for(int i=0; i<inSize; i++)
     {
         imgIn[i] = 3.0f;
-        dummyGradU[i] = i * 1.0f;
     }
     
     for(int i=0; i<kernelSize; i++)
@@ -57,6 +56,7 @@ void downConvTest(){
     {
         f[i] = 3.2f;
         imgOut[i] = 0.0f;
+        dummyGradU[i] = i * 1.0f;
     }
     
     // GPU SECTION
@@ -82,6 +82,7 @@ void downConvTest(){
     cudaMemcpy(d_imgIn, imgIn, inSize*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_kernel, kernel, kernelSize*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_f, f, outSize*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_dummyGradU, dummyGradU, outSize*sizeof(float), cudaMemcpyHostToDevice);
     
     // Compute downconvolution:
     computeDownConvolutionGlobalMemCuda(d_imgDownConv, d_imgIn, d_kernel, n, m, nc, w, h);

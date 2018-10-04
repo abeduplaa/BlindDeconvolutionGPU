@@ -20,8 +20,8 @@ float computeEpsilonCuda(cublasHandle_t handle, const float *a, const float *gra
 
 
     // calling cuda kernel
-    return (smallnum * a[a_i]) * ( ( grad[grad_i] < 1e31) ? (1.0/grad[grad_i]) : (1e-31) );
-
+    //return (smallnum * a[a_i]) * ( ( grad[grad_i] < 1e31) ? (1.0/grad[grad_i]) : (1e-31) );
+	return (float)grad_i;
 }
 
 // CPU FUNCTIONS
