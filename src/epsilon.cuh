@@ -1,6 +1,6 @@
 #ifndef EPSILON_CUH
 #define EPSILON_CUH
-
+#include "cublas_v2.h"
 
 // void computeEpsilonU();
 
@@ -13,7 +13,7 @@ float computeEpsilon(const float *imgIn, const float *gradU, const int size, con
 
 void computeEpsilonGlobalMemCuda(const float *imgIn, const float *gradU, const int size, const float smallnum);
 
-float computeEpsilonCuda(const float *a, const float *grad, const int size, const float smallnum, cublasHandle_t handle);
+float computeEpsilonCuda(cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum);
 
 
 #endif  //  EPSILON_CUH

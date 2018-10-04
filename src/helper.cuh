@@ -12,7 +12,6 @@
 #include <string>
 #include "cublas_v2.h"
 
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 
 // CUDA utility functions
@@ -31,7 +30,7 @@ inline __host__ __device__ int getIndex(int i, int j, int width) {
 // CUBLAS FUNCTIONS:
 
 //compute Aa - b = b (subtraction):
-inline void subtractArraysCUBLAS(cublasHandle_t handle, float *y, const float *x, const float alpha, const int n)
+inline void subtractArraysCUBLAS(cublasHandle_t handle, float *y, const float *x, const float *alpha, const int n)
 {
     cublasSaxpy(handle, n, alpha, x, 1, y, 1);
 }
@@ -45,10 +44,11 @@ inline void absMaxIdCUBLAS(cublasHandle_t handle, int n, const float *x, int inc
 /////////////////////////
 
 // calculate epsilon with just scalar values:
-inline float computeEps(const float *upper, const float *lower, const float *smallnum)
-{
-	return (smallnum * upper) * ( (bar > bash) ? bar : bash );
-}
+//inline float computeEps(const float *upper, const float *lower, const float *smallnum)
+//{
+//	return (smallnum * upper) * ( (bar > bash) ? bar : bash );
+//
+
 
 
 // compute grid size from block size

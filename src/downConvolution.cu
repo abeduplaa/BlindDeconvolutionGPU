@@ -58,7 +58,7 @@ void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *k
 	//0. check if kernel dimensions are less than image dimensions ( h>m+1 or also w>n+1)
 	if( (h>m+1) || (w>n+1) )
 	{
-		std::cout<< "WRONG";
+		std::cout << "\n" << "n: " << n << ", w: " << w << ", m: " << m << ", h: " << h << "\n";
 		throw std::invalid_argument("Kernel dimensions are too big!");
 	}
 

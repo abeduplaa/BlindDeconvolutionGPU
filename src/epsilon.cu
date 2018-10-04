@@ -6,7 +6,6 @@
 #include "epsilon.cuh"
 #include "helper.cuh"
 
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 float computeEpsilonCuda(cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
 {
