@@ -8,7 +8,7 @@
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-float computeEpsilonCuda(const float *a, const float *grad, const int size, const float smallnum, cublasHandle_t handle)
+float computeEpsilonCuda(cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
 {
     //initialize indices:
     int *a_i = NULL;
