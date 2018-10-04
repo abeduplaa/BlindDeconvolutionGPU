@@ -2,8 +2,29 @@
 #include <cuda_runtime.h>
 #include <cmath>
 #include <algorithm>
-#include "epsilon.cuh"
 
+#include "epsilon.cuh"
+#include "helper.cuh"
+
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
+float computeEpsilonCuda(const float *a, const float *grad, const int size, const float smallnum, cublasHandle_t handle)
+{
+    //initialize indices:
+    int *a_i = NULL;
+    int *grad_i = NULL;
+    
+    // call cublas functions:
+    absMaxIdCUBLAS(handle, size, a, 1, a_i);
+
+    absMaxIdCUBLAS(handle, size, grad, 1, grad_i);
+
+    // calling cuda kernel
+    return (smallnum * a[*a_i]) * ( ( grad[*grad_i] < 1e31) ? (1.0/grad[*grad_i]) : (1e-31) );
+
+}
+
+// CPU FUNCTIONS
 
 float computeMaxElem(const float *array,const float size)
 {
@@ -61,9 +82,4 @@ float computeEpsilon(const float *imgIn, const float *gradU, const int size, con
 
     return eps;
 
-}
-
-void computeEpsilonK()
-{
-    //1e-3*max(k(:))/max(1e-31,max(max(abs(gradk))));
 }
