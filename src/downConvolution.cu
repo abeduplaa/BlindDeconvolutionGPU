@@ -7,7 +7,7 @@
 
 __global__
 void computeDownConvolutionGlobalMemKernel(float* imgOut, const float* imgIn,
-const float* kernel, const int w, const int h, const int nc, const int m, const int n){
+const float* kernel, const int n, const int m, const int nc, const int w, const int h){
 	
 	//0. define idxx and idyy in 2d grid
 	int idx = threadIdx.x + blockIdx.x*blockDim.x;
@@ -53,7 +53,7 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
 
 
 
-void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *kernel, int w, int h, int nc, int m, int n)
+void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *kernel, int n, int m, int nc, int w, int h)
 {
 	//0. check if kernel dimensions are less than image dimensions ( h>m+1 or also w>n+1)
 	if( (h>m+1) || (w>n+1) )
@@ -100,7 +100,7 @@ void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *k
 	}
 }
 
-void computeDownConvolutionGlobalMemCuda(float *imgOut, const float *imgIn, const float *kernel, const int w, const int h, const int nc, const int m, const int n)
+void computeDownConvolutionGlobalMemCuda(float *imgOut, const float *imgIn, const float *kernel, const int n, const int m, const int nc, const int w, const int h)
 {
 
 	// allocate block and grid size
@@ -109,7 +109,7 @@ void computeDownConvolutionGlobalMemCuda(float *imgOut, const float *imgIn, cons
 
 	//calling cuda kernel
 	computeDownConvolutionGlobalMemKernel <<<grid,block>>> (imgOut, imgIn, kernel,
-											w, h, nc, m, n);
+											n, m, nc, w, h);
 }
 
 
