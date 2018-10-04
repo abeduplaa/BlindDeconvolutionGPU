@@ -98,9 +98,8 @@ void downConvTest(){
 	//const float alpha1 = -1.0f;
 	//*alpha = alpha1;
 
-    //saxpyCUBLAS(handle, d_imgDownConv, f, &alpha, outSize);
     cublasSaxpy(handle, n*m*nc, &alpha, d_f, 1, d_imgDownConv, 1);
-	
+	//cublasSaxpy(handle, n, alpha, x, 1, y, 1);
     // Calculate epsilon using CUBLAS
     //eps = computeEpsilonCuda(handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
     

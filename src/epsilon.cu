@@ -26,18 +26,17 @@ void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float 
     int a_i = 0;
     int grad_i = 0;
     
-	
-    // call cublas functions:
-    absMaxIdCUBLAS(handle, size, a, 1, &a_i);
-
-    absMaxIdCUBLAS(handle, size, grad, 1, &grad_i);
+    // call cublas functions to get highest value elements:
+    cublasIsamax(handle, size, a, 1, &a_i);
+    
+    cublasIsamax(handle, size, grad, 1, &grad_i);
 
 	// subtract one due to BLAS starting at 1
 	a_i -= 1;
-	grad_i -= 1;
-	
+    grad_i -= 1;
+    
 	//calling cuda kernel
-	//TODO: use cublas function
+	//TODO: use cublas function to calculate epsilon instead of creating new kernel
     computeEpsilonGlobalMemKernel <<<grid,block>>> (eps, a, a_i, grad, grad_i, smallnum);
 }
 

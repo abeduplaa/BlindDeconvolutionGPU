@@ -172,7 +172,7 @@
                                         m, n);
 
     // DONE: cublas subtract k(+)*u - f. Move that to a separate function
-    //subtractArraysCUBLAS(handle, imgOut, f, -1.0f, nc*(w-n+1)*(h-m+1) );
+    //cublasSaxpy(handle, n, alpha, x, 1, y, 1);
     
     // TODO: compute(mirror, rotate) kernel
 
@@ -180,13 +180,13 @@
     /*computeUpConvolutionGlobalMemCuda(imgOut, imgInPad, kernel, w, h, nc, m, n);*/
 
     // TODO: subtract the divergence from upconvolution result (RAVIL)
-    //subtractArraysCUBLAS(handle, imgOut, f, -1.0f, nc*(w-n+1)*(h-m+1) );
+    // cublasSaxpy(handle, n, alpha, x, 1, y, 1);
     // TODO: compute epsilon on GPU
-    // computeEpsilonCuda(handle, imgOut, grad, nc*(w-n+1)*(h-m+1), 5e-3)
+    // computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
 
     // TODO: update output image u = u - eps*grad
-    //subtractArraysCUBLAS(handle, imgOut, f, eps, nc*(w-n+1)*(h-m+1) );
-    // USE CUBLAS AXPY() FUNCTION HERE
+        // USE CUBLAS AXPY() FUNCTION HERE
+    // cublasSaxpy(handle, n, eps, x, 1, y, 1);;
     // copy input data to GPU 
     
 
