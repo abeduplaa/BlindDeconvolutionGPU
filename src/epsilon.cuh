@@ -13,7 +13,7 @@ float computeEpsilon(const float *imgIn, const float *gradU, const int size, con
 
 void computeEpsilonGlobalMemCuda(const float *imgIn, const float *gradU, const int size, const float smallnum);
 
-float computeEpsilonCuda(cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum);
+float computeEpsilonCuda(float *eps, cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum);
 
 
 #endif  //  EPSILON_CUH

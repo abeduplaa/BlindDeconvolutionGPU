@@ -30,7 +30,7 @@ inline __host__ __device__ int getIndex(int i, int j, int width) {
 // CUBLAS FUNCTIONS:
 
 //compute Aa - b = b (subtraction):
-inline void subtractArraysCUBLAS(cublasHandle_t handle, float *y, const float *x, const float *alpha, const int n)
+inline void saxpyCUBLAS(cublasHandle_t handle, float *y, const float *x, const float *alpha, const int n)
 {
     cublasSaxpy(handle, n, alpha, x, 1, y, 1);
 }

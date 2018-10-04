@@ -92,18 +92,13 @@ void downConvTest(){
 	//const float alpha1 = -1.0f;
 	//*alpha = alpha1;
 
-    //subtractArraysCUBLAS(handle, d_imgDownConv, f, &alpha, outSize);
-	cublasStatus_t stat;
-	//stat = cublasSaxpy(handle, n*m*nc, &alpha, f, 1, d_imgDownConv, 1);
-	cublasSaxpy(handle, n*m*nc, &alpha, d_f, 1, d_imgDownConv, 1);
-	//if (stat != CUBLAS_STATUS_SUCCESS)
-	//{
-	//	std::cout << "CUBLAS FAILURE" << "\n";
-	//	return EXIT_FAILURE;
-	//}
+    //saxpyCUBLAS(handle, d_imgDownConv, f, &alpha, outSize);
+    cublasSaxpy(handle, n*m*nc, &alpha, d_f, 1, d_imgDownConv, 1);
+	
     // Calculate epsilon using CUBLAS
-    eps = computeEpsilonCuda(handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
-
+    //eps = computeEpsilonCuda(handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
+    computeEpsilonGlobalMemCuda(&eps, handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
+    
     // Copy results back to CPU for visualization:
     cudaMemcpy(imgDownConvGPU, d_imgDownConv, outSize*sizeof(float), cudaMemcpyDeviceToHost);
 
