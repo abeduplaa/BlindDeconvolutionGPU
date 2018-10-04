@@ -16,6 +16,7 @@
 #include "adjustImage.cuh"
 #include "pad.cuh"
 #include "upConvolution.cuh"
+#include "epsilon.cuh"
 
 #include "cublas_v2.h"
 
@@ -112,8 +113,11 @@
     float *dx_mixed = new float[pad_img_size];
     float *dy_mixed = new float[pad_img_size];
     float *imgDownConv0 = new float[img_size];
+    float *imgUpConv = new float[pad_img_size];
 
     float *div = new float[pad_img_size];
+    float epsU = 0.0f;
+
 
     // TODO: ALLOCATE MEMORY ON GPU
     // allocate arrays on GPU
@@ -129,10 +133,13 @@
     float *d_dy_mixed = NULL;
 
     float *d_imgDownConv0 = NULL;
+    float *d_imgUpConv = NULL;
 
     float *d_div = NULL;
     float *d_kernel = NULL;
     float *d_kernel_rot_180 = NULL;
+
+    float *d_epsU = NULL;
 
     cudaMalloc(&d_imgIn, img_size * sizeof(float)); CUDA_CHECK;
 
@@ -155,14 +162,13 @@
     cudaMalloc(&d_div , pad_img_size * sizeof(float)); CUDA_CHECK;
 
     cudaMalloc(&d_imgDownConv0, img_size * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_imgUpConv, pad_img_size * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_epsU, sizeof(float)); CUDA_CHECK;
 
 	mIn /= 255.0f;
 	convertMatToLayered(imgIn, mIn);
     cudaMemcpy(d_imgIn, imgIn, img_size * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
     cudaMemcpy(d_kernel, kernel, kn * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
-
-
-
 
     padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, mk, nk);
 
@@ -171,35 +177,41 @@
                              d_dx_fw, d_dy_fw,
                              d_dx_bw, d_dy_bw,
                              d_dx_mixed, d_dy_mixed, 
-                             d_imgInPad, padw, padh, nc, lambda, eps);
+                             d_imgInPad, padw, padh, nc, 1.0f, eps);
 
     // DONE: check the parameters list
     // DONE: Switch params in function
     computeDownConvolutionGlobalMemCuda(d_imgDownConv0, 
                                         d_imgInPad, 
-                                        kernel, 
+                                        d_kernel, 
                                         padw, 
                                         padh, 
                                         nc, 
                                         mk, nk);
 
     // DONE: cublas subtract k(+)*u - f. Move that to a separate function
-    //cublasSaxpy(handle, n, alpha, x, 1, y, 1);
+    float alpha = -1.0f;
+    cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+    cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
     
     // TODO: compute(mirror, rotate) kernel
-    /*rotateKernel_180(d_kernel_rot_180, d_kernel, mk, nk); */
+    rotateKernel_180(d_kernel_rot_180, d_kernel, mk, nk); 
 
     // TODO: check the list of  parameters 
-    /*computeUpConvolutionGlobalMemCuda(imgOut, imgInPad, kernel, w, h, nc, m, n);*/
+    computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel_rot_180, w, h, nc, mk, nk);
 
     // TODO: subtract the divergence from upconvolution result (RAVIL)
-    // cublasSaxpy(handle, n, alpha, x, 1, y, 1);
+    alpha = -1.0f * lambda;
+    cublasSaxpy(handle, pad_img_size, &alpha, d_div, 1, d_imgUpConv, 1); CUDA_CHECK;
     // TODO: compute epsilon on GPU
-    // computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
+    computeEpsilonGlobalMemCuda(d_epsU, handle, d_imgInPad, d_imgUpConv, pad_img_size, 5e-3);
+    cudaMemcpy(&epsU, d_epsU, sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout<<"Value of epsilon: "<<epsU<<std::endl;
 
     // TODO: update output image u = u - eps*grad
         // USE CUBLAS AXPY() FUNCTION HERE
-    // cublasSaxpy(handle, n, eps, x, 1, y, 1);;
+    cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
+    cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPad, 1);
     // copy input data to GPU 
     
 
@@ -228,6 +240,7 @@
     cv::Mat m_div(padh, padw, mIn.type());
     cv::Mat mPadImg(padh, padw, mIn.type());
     cv::Mat mImgDownConv0(h, w, mIn.type());
+    cv::Mat mImgUpConv(padh, padw, mIn.type());
     
     cudaMemcpy(dx_fw, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(imgInPad, d_imgInPad, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
@@ -246,6 +259,8 @@
     CUDA_CHECK;
 
     cudaMemcpy(div, d_div, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(imgUpConv, d_imgUpConv, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+    CUDA_CHECK;
 
     //copy data from GPU to CPU
     float scale = 10.0;
@@ -269,6 +284,7 @@
     convertLayeredToMat(m_div, div);
     convertLayeredToMat(mPadImg, imgInPad);
     convertLayeredToMat(mImgDownConv0, imgDownConv0);
+    convertLayeredToMat(mImgUpConv, imgUpConv);
 
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
     showImage("Input", mIn, pos_orig_x, pos_orig_y);
@@ -277,6 +293,7 @@
     showImage("divergence", m_div, pos_orig_x + w, pos_orig_y + w + shift_y);
     showImage("Pad", mPadImg, 100, 140);
     showImage("Down Conv 0", mImgDownConv0, 200, 240);
+    showImage("Up Conv", mImgUpConv, 300, 340);
 
 	//convertLayeredToMat(mOut, imgOut);
 	//showImage("Output", mOut, 100+w+40, 100);
@@ -301,6 +318,7 @@
     delete [] dy_mixed;
 
     delete [] imgDownConv0;
+    delete [] imgUpConv;
 
     delete [] div;
     delete [] kernel;
@@ -319,6 +337,8 @@
     cudaFree(d_dy_mixed); CUDA_CHECK;
 
     cudaFree(d_imgDownConv0); CUDA_CHECK;
+    cudaFree(d_imgUpConv); CUDA_CHECK;
+    cudaFree(d_epsU); CUDA_CHECK;
 
     cudaFree(d_div); CUDA_CHECK;
 

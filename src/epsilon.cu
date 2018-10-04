@@ -11,7 +11,9 @@
 __global__
 void computeEpsilonGlobalMemKernel(float *eps, const float *a, const int a_i, const float *grad, const int grad_i, const float smallnum)
 {
-    *eps = (smallnum * a[a_i]) * ( ( grad[grad_i] < 1e31) ? (1.0/grad[grad_i]) : (1e-31) );
+    /**eps = 0.5f;*/
+    float temp = (grad[grad_i] > 0) ? grad[grad_i] : -1.0f * grad[grad_i];
+    *eps = (smallnum * a[a_i]) * ( ( temp < 1e31) ? (1.0/temp) : (1e-31) );
 }
 
 
@@ -27,11 +29,14 @@ void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float 
     int grad_i = 0;
     
     // call cublas functions to get highest value elements:
-    cublasIsamax(handle, size, a, 1, &a_i);
+    cublasIsamax(handle, size, a, 1, &a_i); 
+    CUDA_CHECK;
     
     cublasIsamax(handle, size, grad, 1, &grad_i);
+    CUDA_CHECK;
 
 	// subtract one due to BLAS starting at 1
+    std::cout<< " a and grad"<<a_i<<"   "<<grad_i<<std::endl;
 	a_i -= 1;
     grad_i -= 1;
     
