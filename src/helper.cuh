@@ -10,8 +10,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <string>
+#include "cublas_v2.h"
 
- 
+
 
 // CUDA utility functions
 

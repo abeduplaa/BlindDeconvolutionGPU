@@ -8,8 +8,6 @@
 #include <iostream>
 #include <sstream>
 
-
-
 // cuda error checking
 std::string prev_file = "";
 int prev_line = 0;

@@ -5,11 +5,12 @@
 #include "downConvolution.cuh"
 #include "helper.cuh"
 #include "epsilon.cuh"
+#include "cublas_v2.h"
 
 void downConvTest(){
     
     // Initialize variables
-    size_t nc = 2;
+    size_t nc = 1;
     size_t w = 5; 
     size_t h = 9;
     size_t m = 17; 
@@ -22,7 +23,13 @@ void downConvTest(){
 	size_t kernelSize = h*w;
     size_t outSize = outSizeX * outSizeY * nc;
 
+
+     // Initialize Cublas
+     cublasHandle_t handle;
+     cublasCreate(&handle);
+
     float eps = 0;
+    float epsCPU = 0;
 
     // allocate memory for arrays
     float* imgIn = new float[inSize];
@@ -37,8 +44,12 @@ void downConvTest(){
 
     for(int i=0; i<inSize; i++)
     {
+		dummyGradU[i] = i * 1.0f;
+		if(i == 32)
+		{
+			dummyGradU[i] = 3000.0f;
+		}
         imgIn[i] = 3.0f;
-        dummyGradU[i] = i * 1.0f;
     }
     
     for(int i=0; i<kernelSize; i++)
@@ -51,7 +62,7 @@ void downConvTest(){
         f[i] = 3.2f;
         imgOut[i] = 0.0f;
     }
-    
+	std::cout<< "outsize: " << outSize << "\n"; 
     // GPU SECTION
 
     // Initialize GPU arrays
@@ -59,28 +70,50 @@ void downConvTest(){
     float* d_imgOut = NULL;
     float* d_kernel = NULL;
     float* d_imgDownConv = NULL;
+    float* d_dummyGradU = NULL;
+    float* d_f = NULL;
+	float* d_eps = NULL;	
 
     // Allocate memory on the GPU:
     cudaMalloc(&d_imgIn, inSize*sizeof(float));
     cudaMalloc(&d_imgOut, outSize*sizeof(float));
     cudaMalloc(&d_kernel, kernelSize*sizeof(float));
     cudaMalloc(&d_imgDownConv, outSize*sizeof(float));
+    cudaMalloc(&d_dummyGradU, inSize*sizeof(float));
+    cudaMalloc(&d_f, outSize*sizeof(float));
+    cudaMalloc(&d_eps, sizeof(float));
+
     
     // Copy arrays from CPU to GPU:
     cudaMemcpy(d_imgIn, imgIn, inSize*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_kernel, kernel, kernelSize*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_f, f, outSize*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_dummyGradU, dummyGradU, inSize*sizeof(float), cudaMemcpyHostToDevice);
     
     // Compute downconvolution:
-    computeDownConvolutionGlobalMemCuda(d_imgDownConv, d_imgIn, d_kernel, w, h, nc, m, n);
+    computeDownConvolutionGlobalMemCuda(d_imgDownConv, d_imgIn, d_kernel, n, m, nc, w, h);
+
+    // Subtract using CUBLAS:
+	const float alpha = -1.0f;
+	//const float alpha1 = -1.0f;
+	//*alpha = alpha1;
+
+    cublasSaxpy(handle, n*m*nc, &alpha, d_f, 1, d_imgDownConv, 1);
+	//cublasSaxpy(handle, n, alpha, x, 1, y, 1);
+    // Calculate epsilon using CUBLAS
+    //eps = computeEpsilonCuda(handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
+    
+	computeEpsilonGlobalMemCuda(d_eps, handle, d_imgIn, d_dummyGradU, inSize, 5e-3);
     
     // Copy results back to CPU for visualization:
     cudaMemcpy(imgDownConvGPU, d_imgDownConv, outSize*sizeof(float), cudaMemcpyDeviceToHost);
-
+    cudaMemcpy(&eps, d_eps, sizeof(float), cudaMemcpyDeviceToHost);
+	
     // CPU commands
 
-    computeDownConvolutionCPU(imgDownConv, imgIn, kernel, w, h, nc, m, n);
+    computeDownConvolutionCPU(imgDownConv, imgIn, kernel, n, m, nc, w, h);
 
-    eps = computeEpsilon(imgIn, dummyGradU, inSize, 0.005);
+    epsCPU = computeEpsilon(imgIn, dummyGradU, inSize, 0.005);
 
     subtractArrays(imgOut,imgDownConv, f, outSize);
 
@@ -107,7 +140,7 @@ void downConvTest(){
         }
     }
 
-    std::cout<<"After subtraction"<< "\n";
+    std::cout<<"After CPU subtraction"<< "\n";
     for(int c=0; c<nc; ++c){
         std::cout<<"Channel no :  "<<c<<std::endl;
         for(int j=0; j<outSizeY; ++j){
@@ -118,7 +151,7 @@ void downConvTest(){
         }
     }
 
-    std::cout<<"GPU Deconvolution"<< "\n";
+    std::cout<<"GPU Deconvolution and Subtraction"<< "\n";
     for(int c=0; c<nc; ++c){
         std::cout<<"Channel no :  "<<c<<std::endl;
         for(int j=0; j<outSizeY; ++j){
@@ -129,13 +162,18 @@ void downConvTest(){
         }
     }
 
-    std::cout<<"CPU epsilon value: " << eps << "\n";
+    std::cout<< "\n" << "GPU epsilon value: " << eps << "\n";
+    
+    std::cout<< "\n" << "CPU epsilon value: " << epsCPU << "\n";
 
     //Free Cuda Memory
     cudaFree(d_imgIn);
     cudaFree(d_imgOut);
     cudaFree(d_kernel);
     cudaFree(d_imgDownConv);
+    cudaFree(d_dummyGradU);
+	cudaFree(d_f);
+	cudaFree(d_eps);
 
 
     //Free Host Memory
@@ -147,4 +185,5 @@ void downConvTest(){
     delete[] f;
     delete[] imgDownConvGPU;
     
+    cublasDestroy(handle);
 }
