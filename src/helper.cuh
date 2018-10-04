@@ -10,8 +10,10 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <string>
+#include "cublas_v2.h"
 
- 
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
 
 // CUDA utility functions
 
@@ -23,6 +25,30 @@ void cuda_check(std::string file, int line);
 // compute index within 1d array 
 inline __host__ __device__ int getIndex(int i, int j, int width) {
     return i + j * width;
+}
+
+/////////////////////////
+// CUBLAS FUNCTIONS:
+
+//compute Aa - b = b (subtraction):
+inline void subtractArraysCUBLAS(cublasHandle_t handle, float *y, const float *x, const int n)
+{
+    const float alpha = -1.0f;
+    cublasSaxpy(handle, n, alpha, x, 1, y, 1);
+}
+
+// compute the absolute value maximum element index of vector 
+inline void absMaxIdCUBLAS(cublasHandle_t handle, int n, const float *x, int incx, int *result)
+{
+    cublasIsamax(handle, n, x, incx, result);
+}
+
+/////////////////////////
+
+// calculate epsilon with just scalar values:
+inline float computeEps(const float *upper, const float *lower, const float *smallnum)
+{
+	return (smallnum * upper) * ( (bar > bash) ? bar : bash );
 }
 
 
