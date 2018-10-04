@@ -11,31 +11,33 @@
 __global__
 void computeEpsilonGlobalMemKernel(float *eps, const float *a, const int a_i, const float *grad, const int grad_i, const float smallnum)
 {
-	// int idx = threadIdx.x + blockIdx.x*blockDim.x;
-	// int idy = threadIdx.y + blockIdx.y*blockDim.y;
-    // calling cuda kernel
     *eps = (smallnum * a[a_i]) * ( ( grad[grad_i] < 1e31) ? (1.0/grad[grad_i]) : (1e-31) );
-    
 }
 
 
 void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
 {
-    	// allocate block and grid size
+    // allocate block and grid size
+	// TODO: What should these values be?
 	dim3 block(32, 8, 1);
-	//dim3 grid = computeGrid2D(block, m - h + 1, n - w + 1);
 	dim3 grid = computeGrid2D(block, 8, 8);
 
     //initialize indices:
-    int a_i = NULL;
-    int grad_i = NULL;
+    int a_i = 0;
+    int grad_i = 0;
     
+	
     // call cublas functions:
     absMaxIdCUBLAS(handle, size, a, 1, &a_i);
 
     absMaxIdCUBLAS(handle, size, grad, 1, &grad_i);
+
+	// subtract one due to BLAS starting at 1
+	a_i -= 1;
+	grad_i -= 1;
 	
 	//calling cuda kernel
+	//TODO: use cublas function
     computeEpsilonGlobalMemKernel <<<grid,block>>> (eps, a, a_i, grad, grad_i, smallnum);
 }
 
@@ -85,27 +87,31 @@ float computeEpsilon(const float *imgIn, const float *gradU, const int size, con
     
     maxGrad = computeMaxElem(absgradU, size);
 
+
     if(1e-31 > maxGrad)
     {
         lower = 1e31;
     }else
     {
-        lower = 1/maxGrad;
+        lower = 1.f/maxGrad;
     }
 
     maxElemU = computeMaxElem(imgIn, size);
-
+	
+	std::cout<<"CPU.. maxU: " << maxElemU << ", maxGrad: " << maxGrad << ", smallnum: "<<smallnum<< "\n";
+	
     eps = (smallnum * maxElemU ) * lower;
 
     return eps;
 
 }
 
+/*
 float computeEpsilonCuda(cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
 {
     //initialize indices:
-    int a_i = NULL;
-    int grad_i = NULL;
+    int a_i = 0;
+    int grad_i = 0;
     
     // call cublas functions:
     absMaxIdCUBLAS(handle, size, a, 1, &a_i);
@@ -117,3 +123,4 @@ float computeEpsilonCuda(cublasHandle_t handle, const float *a, const float *gra
     //return (smallnum * a[a_i]) * ( ( grad[grad_i] < 1e31) ? (1.0/grad[grad_i]) : (1e-31) );
 	return (float)grad_i;
 }
+*/

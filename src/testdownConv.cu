@@ -33,7 +33,7 @@ void downConvTest(){
 
     // allocate memory for arrays
     float* imgIn = new float[inSize];
-    float* dummyGradU = new float[outSize];
+    float* dummyGradU = new float[inSize];
 
     float* kernel = new float[kernelSize];
 
@@ -44,6 +44,11 @@ void downConvTest(){
 
     for(int i=0; i<inSize; i++)
     {
+		dummyGradU[i] = i * 1.0f;
+		if(i == 32)
+		{
+			dummyGradU[i] = 3000.0f;
+		}
         imgIn[i] = 3.0f;
     }
     
@@ -56,9 +61,8 @@ void downConvTest(){
     {
         f[i] = 3.2f;
         imgOut[i] = 0.0f;
-        dummyGradU[i] = i * 1.0f;
     }
-    
+	std::cout<< "outsize: " << outSize << "\n"; 
     // GPU SECTION
 
     // Initialize GPU arrays
@@ -68,21 +72,23 @@ void downConvTest(){
     float* d_imgDownConv = NULL;
     float* d_dummyGradU = NULL;
     float* d_f = NULL;
+	float* d_eps = NULL;	
 
     // Allocate memory on the GPU:
     cudaMalloc(&d_imgIn, inSize*sizeof(float));
     cudaMalloc(&d_imgOut, outSize*sizeof(float));
     cudaMalloc(&d_kernel, kernelSize*sizeof(float));
     cudaMalloc(&d_imgDownConv, outSize*sizeof(float));
-    cudaMalloc(&d_dummyGradU, outSize*sizeof(float));
+    cudaMalloc(&d_dummyGradU, inSize*sizeof(float));
     cudaMalloc(&d_f, outSize*sizeof(float));
+    cudaMalloc(&d_eps, sizeof(float));
 
     
     // Copy arrays from CPU to GPU:
     cudaMemcpy(d_imgIn, imgIn, inSize*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_kernel, kernel, kernelSize*sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_f, f, outSize*sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_dummyGradU, dummyGradU, outSize*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_dummyGradU, dummyGradU, inSize*sizeof(float), cudaMemcpyHostToDevice);
     
     // Compute downconvolution:
     computeDownConvolutionGlobalMemCuda(d_imgDownConv, d_imgIn, d_kernel, n, m, nc, w, h);
@@ -98,11 +104,12 @@ void downConvTest(){
     // Calculate epsilon using CUBLAS
     //eps = computeEpsilonCuda(handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
     
-	//computeEpsilonGlobalMemCuda(&eps, handle, d_imgDownConv, d_dummyGradU, outSize, 5e-3);
+	computeEpsilonGlobalMemCuda(d_eps, handle, d_imgIn, d_dummyGradU, inSize, 5e-3);
     
     // Copy results back to CPU for visualization:
     cudaMemcpy(imgDownConvGPU, d_imgDownConv, outSize*sizeof(float), cudaMemcpyDeviceToHost);
-
+    cudaMemcpy(&eps, d_eps, sizeof(float), cudaMemcpyDeviceToHost);
+	
     // CPU commands
 
     computeDownConvolutionCPU(imgDownConv, imgIn, kernel, n, m, nc, w, h);
@@ -167,6 +174,8 @@ void downConvTest(){
     cudaFree(d_imgDownConv);
     cudaFree(d_dummyGradU);
 	cudaFree(d_f);
+	cudaFree(d_eps);
+
 
     //Free Host Memory
     delete[] imgIn;
