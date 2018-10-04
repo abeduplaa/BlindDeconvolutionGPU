@@ -53,7 +53,7 @@
 	 int nk = cmd.get<int>("nk"); nk = (nk <= 0) ? 5 : nk;
      bool is_cpu = cmd.get<bool>("cpu");
      float lambda = cmd.get<float>("lambda"); lambda = (lambda <= 0) ? 0.0068 : lambda;
-     float eps = cmd.get<float>("eps");
+     float eps = cmd.get<float>("eps"); eps = ( eps <= 0 ) ? 1e-3 : eps;
 
      std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
 
@@ -172,12 +172,6 @@
 
     padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, mk, nk);
 
-    // compute gradient and divergence
-    computeDiffOperatorsCuda(d_div, 
-                             d_dx_fw, d_dy_fw,
-                             d_dx_bw, d_dy_bw,
-                             d_dx_mixed, d_dy_mixed, 
-                             d_imgInPad, padw, padh, nc, 1.0f, eps);
 
     // DONE: check the parameters list
     // DONE: Switch params in function
@@ -200,6 +194,14 @@
     // TODO: check the list of  parameters 
     computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel_rot_180, w, h, nc, mk, nk);
 
+    // compute gradient and divergence
+    computeDiffOperatorsCuda(d_div, 
+                             d_dx_fw, d_dy_fw,
+                             d_dx_bw, d_dy_bw,
+                             d_dx_mixed, d_dy_mixed, 
+                             d_imgInPad, padw, padh, nc, 1.0f, eps);
+    /*cudaThreadSynchronize();*/
+
     // TODO: subtract the divergence from upconvolution result (RAVIL)
     alpha = -1.0f * lambda;
     cublasSaxpy(handle, pad_img_size, &alpha, d_div, 1, d_imgUpConv, 1); CUDA_CHECK;
@@ -210,8 +212,9 @@
 
     // TODO: update output image u = u - eps*grad
         // USE CUBLAS AXPY() FUNCTION HERE
-    cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
-    cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPad, 1);
+    /*cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);*/
+    alpha = -1.0f;
+    cublasSaxpy(handle, pad_img_size, &alpha, d_imgUpConv, 1, d_imgInPad, 1);
     // copy input data to GPU 
     
 
@@ -245,6 +248,84 @@
     cudaMemcpy(dx_fw, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(imgInPad, d_imgInPad, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_fw, d_dy_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     cudaMemcpy(dx_bw, d_dx_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_bw, d_dy_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;

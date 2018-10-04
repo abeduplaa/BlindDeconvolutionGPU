@@ -2,6 +2,7 @@
 #include "helper.cuh"
 
 #include <iostream>
+#include <stdio.h>
 #include <cuda_runtime.h>
 #include "helper.cuh"
 #include <stdio.h>
@@ -31,11 +32,11 @@ void computeGradientsKernel(float *dx_fw, float *dy_fw,
                 float down = (y > 0) 
                            ? imgIn[getIndex(x, y - 1, w) + offset] : 0.0f;  
 
-                float top_left = ((x > 0) && (y < h - 1)) 
-                               ? imgIn[getIndex(x - 1, y + 1, w) + offset] : 0.0f;
+                float top_right = ((x < w - 1) && (y < h - 1)) 
+                               ? imgIn[getIndex(x + 1, y + 1, w) + offset] : 0.0f;
 
-                float down_right = ((x < w - 1) && (y > 0)) 
-                                 ? imgIn[getIndex(x + 1, y - 1, w) + offset] : 0.0f;
+                float down_left = ((x > 0) && (y > 0)) 
+                                 ? imgIn[getIndex(x - 1, y - 1, w) + offset] : 0.0f;
 
                 dx_fw[getIndex(x, y, w) + offset] = right - center;
                 dy_fw[getIndex(x, y, w) + offset] = top - center;
@@ -43,8 +44,8 @@ void computeGradientsKernel(float *dx_fw, float *dy_fw,
                 dx_bw[getIndex(x, y, w) + offset] = center - left;
                 dy_bw[getIndex(x, y, w) + offset] = center - down;
 
-                dx_mixed[getIndex(x, y, w) + offset] = down_right - down;
-                dy_mixed[getIndex(x, y, w) + offset] = top_left - left;
+                dx_mixed[getIndex(x, y, w) + offset] = top_right - top;
+                dy_mixed[getIndex(x, y, w) + offset] = down_left - left;
             }
         }
     }
@@ -52,7 +53,7 @@ void computeGradientsKernel(float *dx_fw, float *dy_fw,
 
 
 __device__
-float computeDuffusivity(const float &a, const float &b, const float eps) {
+float computeDuffusivity(const float a, const float b, const float eps) {
     return max(eps, sqrtf(a * a + b * b)); 
 }
 
@@ -74,7 +75,6 @@ void computeDivergenceKernel(float *div,
         for (int x = idx; x < w; x += blockDim.x * gridDim.x) {
             for (int y = idy; y < h; y += blockDim.y * gridDim.y) {
                 int index = getIndex(x, y, w) + offset; 
-
                 div[index] = lamda * (((dx_fw[index] + dy_fw[index]) 
                                         / computeDuffusivity(dx_fw[index],dy_fw[index], eps)) 
                            - dx_bw[index] / computeDuffusivity(dx_bw[index], dy_mixed[index], eps)

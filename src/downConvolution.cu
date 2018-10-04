@@ -42,7 +42,7 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
 			
             for(int kj = -kRadius_n; kj <= kRadius_n; kj++)
             {
-                for(int ki = -kRadius_m; ki < kRadius_m; ki++)
+                for(int ki = -kRadius_m; ki <= kRadius_m; ki++)
                 {
                     imgOut[out_idx] += kernel[(ki+kRadius_m)+((kj+kRadius_n)*kRadius_m)]
                         * imgIn[(out_x+ki)+ (out_y+kj)*w + (c*w*h)];

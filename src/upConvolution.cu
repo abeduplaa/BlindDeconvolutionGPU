@@ -30,7 +30,24 @@ void computeUpConvolutionGlobalMemKernel(float* imgOut, const float* imgIn,
             }
         }
     }
+
+    /*for (int channel = 0; channel < nc; ++channel) {*/
+
+        /*int offset = w * h * channel;*/
+        /*int idx = threadIdx.x + blockIdx.x * blockDim.x;*/
+        /*int idy = threadIdx.y + blockIdx.y * blockDim.y;*/
+
+        /*for (int x = idx; x < w; x += blockDim.x * gridDim.x) {*/
+            /*for (int y = idy; y < h; y += blockDim.y * gridDim.y) {*/
+
+                /*int id = getIndex(x, y + 2 * padY + 1, w + 2 * padX + 1) + offset; */
+                /*float center = imgIn[id];*/
+                /*imgOut[id] = center;*/
+            /*}*/
+        /*}*/
+    /*}*/
 }
+
 
 void initialiseKernel(float *kernel, int m, int n){
     const float x = 1.0f/(m*n);
@@ -85,11 +102,12 @@ void computeUpConvolutionGlobalMemCuda(float *imgOut, const float *imgIn,
 
     // allocate block and grid size
     dim3 block(32, 8, 1);
-    int padX = (int) floor(m/2.0f);
-    int padY = (int) floor(n/2.0f);
+    int padX = (int) m/2.0f;
+    int padY = (int) n/2.0f;
     dim3 grid = computeGrid2D(block, w + m - 1, h + n - 1);
 
     //calling cuda kernel
     computeUpConvolutionGlobalMemKernel <<<grid,block>>> (imgOut, imgIn, kernel,
                                             w, h, nc, padX, padY);
+    CUDA_CHECK;
 }
