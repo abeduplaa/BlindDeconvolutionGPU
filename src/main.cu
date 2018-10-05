@@ -123,7 +123,7 @@
     // allocate arrays on GPU
     float *d_imgIn = NULL;
     float *d_imgInPad = NULL;
-    float *d_imgInPadBuffer = NULL;
+    float *d_imgInBuffer = NULL;
     float *d_imgOut = NULL;
 
     float *d_dx_fw = NULL;

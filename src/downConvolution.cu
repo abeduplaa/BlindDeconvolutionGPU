@@ -3,7 +3,7 @@
 
 #include "downConvolution.cuh"
 #include "helper.cuh"
-
+#include <cub/cub.cuh> 
 
 __global__
 void computeDownConvolutionGlobalMemKernel(float* imgOut, const float* imgIn,
@@ -116,11 +116,11 @@ void computeDownConvolutionGlobalMemCuda(float *imgOut, const float *imgIn, cons
 
 
 // -------------------------------------------------------------------------------------
-
+__global__
 void computeImageConvilution(float *imgInBuffer,
-                             const float *d_imgIn,
+                             const float *imgIn,
                              const int w, const int h,
-                             const float *d_imgInPad,
+                             const float *imgInPad,
                              const int padw, const int padh,
                              const int delta_x, const int delta_y,
                              const int nc) {
@@ -131,7 +131,7 @@ void computeImageConvilution(float *imgInBuffer,
         int idx = threadIdx.x + blockIdx.x * blockDim.x;
         int idy = threadIdx.y + blockIdx.y * blockDim.y;
 
-        for (int y = idy; y < pady; y += blockDim.y * gridDim.y) {
+        for (int y = idy; y < padh; y += blockDim.y * gridDim.y) {
             for (int x = idx; x < padw; x += blockDim.x * gridDim.x) {
 
                 int relative_x = x + delta_x; 
@@ -162,17 +162,30 @@ void computeImageConvilution(float *d_kernel_temp, const int mk, const int nk ,
 
 	// allocate block and grid size
 	dim3 block(32, 8, 1);
-	dim3 grid = computeGrid2D(block, padw, padh);
+	dim3 grid = computeGrid2D(block, w, h);
 
-    cublasHandle_t handle;
-    cublasCreate(&handle);
+    // determine the size of temp buffer
+    void *d_temp_storage = NULL;
+    size_t temp_storage_bytes = 0;
 
-    for(int delta_y = 0; delta_y < nk; ++delta_y){
-        for(int delta_x = 0; delta_x < mk; ++delta_x){
+    // NOTE: When d_temp_storage is NULL, no work is done and
+    // the required allocation size is returned in
+    // temp_storage_bytes.
+    cub::DeviceReduce::Sum<float*, float*>(d_temp_storage,
+                                           temp_storage_bytes, 
+                                           d_imgInBuffer, 
+                                           &d_kernel_temp[0], 
+                                           w * h * nc);
+
+    cudaMalloc(&d_temp_storage, temp_storage_bytes); CUDA_CHECK;
+
+
+     for(int delta_y = 0; delta_y < nk; ++delta_y) {
+        for(int delta_x = 0; delta_x < mk; ++delta_x) {
 
 
             computeImageConvilution<<<grid, block>>>(d_imgInBuffer,
-                                                     d_imgPad,
+                                                     d_imgIn,
                                                      w, h,
                                                      d_imgInPad,
                                                      padw, padh,
@@ -180,9 +193,18 @@ void computeImageConvilution(float *d_kernel_temp, const int mk, const int nk ,
                                                      nc);
             CUDA_CHECK;
 
+            int kernel_index = getIndex(delta_x, delta_y, mk);
+            cub::DeviceReduce::Sum<float*, float*>(d_temp_storage,
+                                                   temp_storage_bytes, 
+                                                   d_imgInBuffer, 
+                                                   &d_kernel_temp[kernel_index], 
+                                                   w * h * nc);
+
+            CUDA_CHECK;
         }
     }
-    cublasDestroy(handle);
+
+    cudaFree(d_temp_storage); CUDA_CHECK;
 }
 
 
