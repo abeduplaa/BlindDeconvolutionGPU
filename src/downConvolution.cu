@@ -115,4 +115,75 @@ void computeDownConvolutionGlobalMemCuda(float *imgOut, const float *imgIn, cons
 }
 
 
+// -------------------------------------------------------------------------------------
+
+void computeImageConvilution(float *imgInBuffer,
+                             const float *d_imgIn,
+                             const int w, const int h,
+                             const float *d_imgInPad,
+                             const int padw, const int padh,
+                             const int delta_x, const int delta_y,
+                             const int nc) {
+
+    for (int channel = 0; channel < nc; ++channel) {
+
+        int offset = w * h * channel;
+        int idx = threadIdx.x + blockIdx.x * blockDim.x;
+        int idy = threadIdx.y + blockIdx.y * blockDim.y;
+
+        for (int y = idy; y < pady; y += blockDim.y * gridDim.y) {
+            for (int x = idx; x < padw; x += blockDim.x * gridDim.x) {
+
+                int relative_x = x + delta_x; 
+                int relative_y = y + delta_y; 
+
+                /*relative_x = relative_x < 0 ? 0 : relative_x;*/
+                /*relative_x = relative_x > w ? w - 1 : relative_x;*/
+
+                /*relative_y = relative_y < 0 ? 0 : relative_y;*/
+                /*relative_y = relative_y > h ? h - 1 : relative_y;*/
+                
+                int kernel_index = getIndex(x, y, w) + offset;
+                int image_index = getIndex(relative_x, relative_y, padw) + offset;
+
+                imgInBuffer[kernel_index] = imgIn[kernel_index] * imgInPad[image_index];
+            }
+        }
+    }
+
+}
+
+
+void computeImageConvilution(float *d_kernel_temp, const int mk, const int nk ,
+                             const float *d_imgIn, float *d_imgInBuffer, 
+                             const int w, const int h, 
+                             const float *d_imgInPad, const int padw, const int padh, 
+                             const int nc) {
+
+	// allocate block and grid size
+	dim3 block(32, 8, 1);
+	dim3 grid = computeGrid2D(block, padw, padh);
+
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+
+    for(int delta_y = 0; delta_y < nk; ++delta_y){
+        for(int delta_x = 0; delta_x < mk; ++delta_x){
+
+
+            computeImageConvilution<<<grid, block>>>(d_imgInBuffer,
+                                                     d_imgPad,
+                                                     w, h,
+                                                     d_imgInPad,
+                                                     padw, padh,
+                                                     delta_x, delta_y,
+                                                     nc);
+            CUDA_CHECK;
+
+        }
+    }
+    cublasDestroy(handle);
+}
+
+
 

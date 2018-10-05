@@ -123,6 +123,7 @@
     // allocate arrays on GPU
     float *d_imgIn = NULL;
     float *d_imgInPad = NULL;
+    float *d_imgInPadBuffer = NULL;
     float *d_imgOut = NULL;
 
     float *d_dx_fw = NULL;
@@ -137,18 +138,19 @@
 
     float *d_div = NULL;
     float *d_kernel = NULL;
-    float *d_kernel_rot_180 = NULL;
+    float *d_kernel_temp = NULL;
 
     float *d_epsU = NULL;
 
     cudaMalloc(&d_imgIn, img_size * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_imgInBuffer, img_size * sizeof(float)); CUDA_CHECK;
 
     // TODO: be sure the size id right (RAVI)
     cudaMalloc(&d_imgInPad, pad_img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_imgOut , pad_img_size * sizeof(float)); CUDA_CHECK;
 
     cudaMalloc(&d_kernel, kn * sizeof(float)); CUDA_CHECK;
-    cudaMalloc(&d_kernel_rot_180, kn  * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_kernel_temp, kn  * sizeof(float)); CUDA_CHECK;
 
     cudaMalloc(&d_dx_fw, pad_img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_dy_fw, pad_img_size * sizeof(float)); CUDA_CHECK;
@@ -181,7 +183,7 @@
                                         padw, 
                                         padh, 
                                         nc, 
-                                        mk, nk);
+                                    mk, nk);
 
     // DONE: cublas subtract k(+)*u - f. Move that to a separate function
     float alpha = -1.0f;
@@ -189,10 +191,10 @@
     cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
     
     // TODO: compute(mirror, rotate) kernel
-    rotateKernel_180(d_kernel_rot_180, d_kernel, mk, nk); 
+    rotateKernel_180(d_kernel_temp, d_kernel, mk, nk); 
 
     // TODO: check the list of  parameters 
-    computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel_rot_180, w, h, nc, mk, nk);
+    computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel_temp, w, h, nc, mk, nk);
 
     // compute gradient and divergence
     computeDiffOperatorsCuda(d_div, 
@@ -218,7 +220,15 @@
     // copy input data to GPU 
     
 
+    // flip image
 
+    // TODO: perform convolution: k = u * u_pad
+    computeImageConvilution(d_kernel_temp, mk, nk ,
+                            d_imgIn, d_imgInBuffer, 
+                            w, h, 
+                            d_imgInPad, padw, padh, 
+                            nc); 
+    
 	// convert range of each channel to [0,1]
 	// init raw input image array (and convert to layered)
 
@@ -248,84 +258,6 @@
     cudaMemcpy(dx_fw, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(imgInPad, d_imgInPad, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_fw, d_dy_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     cudaMemcpy(dx_bw, d_dx_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_bw, d_dy_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
@@ -406,9 +338,10 @@
 
     cudaFree(d_imgIn); CUDA_CHECK;
     cudaFree(d_imgInPad); CUDA_CHECK;
+    cudaFree(d_imgInBuffer); CUDA_CHECK;
     cudaFree(d_imgOut); CUDA_CHECK;
     cudaFree(d_kernel); CUDA_CHECK;
-    cudaFree(d_kernel_rot_180); CUDA_CHECK;
+    cudaFree(d_kernel_temp); CUDA_CHECK;
 
     cudaFree(d_dx_fw); CUDA_CHECK;
     cudaFree(d_dy_fw); CUDA_CHECK;
@@ -422,6 +355,8 @@
     cudaFree(d_epsU); CUDA_CHECK;
 
     cudaFree(d_div); CUDA_CHECK;
+
+    cublasDestroy(handle);
 
     // close all opencv windows
     cv::destroyAllWindows();
