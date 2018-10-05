@@ -116,7 +116,7 @@
     float *imgUpConv = new float[pad_img_size];
 
     float *div = new float[pad_img_size];
-    float epsU = 0.0f;
+    float epsU, epsK = 0.0f;
     float alpha = -1.0f;
 
 
@@ -124,7 +124,8 @@
     // allocate arrays on GPU
     float *d_imgIn = NULL;
     float *d_imgInPad = NULL;
-    float *d_imgInPadBuffer = NULL;
+    float *d_imgInBuffer = NULL;
+    float *d_imgPadRot = NULL;
     float *d_imgOut = NULL;
 
     float *d_dx_fw = NULL;
@@ -135,6 +136,7 @@
     float *d_dy_mixed = NULL;
 
     float *d_imgDownConv0 = NULL;
+    float *d_imgDownConv1 = NULL;
     float *d_imgUpConv = NULL;
 
     float *d_div = NULL;
@@ -142,12 +144,14 @@
     float *d_kernel_temp = NULL;
 
     float *d_epsU = NULL;
+    float *d_epsK = NULL;
 
     cudaMalloc(&d_imgIn, img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_imgInBuffer, img_size * sizeof(float)); CUDA_CHECK;
 
     // TODO: be sure the size id right (RAVI)
     cudaMalloc(&d_imgInPad, pad_img_size * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_imgPadRot, pad_img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_imgOut , pad_img_size * sizeof(float)); CUDA_CHECK;
 
     cudaMalloc(&d_kernel, kn * sizeof(float)); CUDA_CHECK;
@@ -165,8 +169,10 @@
     cudaMalloc(&d_div , pad_img_size * sizeof(float)); CUDA_CHECK;
 
     cudaMalloc(&d_imgDownConv0, img_size * sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_imgDownConv1, img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_imgUpConv, pad_img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_epsU, sizeof(float)); CUDA_CHECK;
+    cudaMalloc(&d_epsK, sizeof(float)); CUDA_CHECK;
 
 	mIn /= 255.0f;
 	convertMatToLayered(imgIn, mIn);
@@ -207,21 +213,19 @@
 
     // TODO: subtract the divergence from upconvolution result (RAVIL)
     alpha = -1.0f * lambda;
+    std::cout << lambda << std::endl;
     cublasSaxpy(handle, pad_img_size, &alpha, d_div, 1, d_imgUpConv, 1); CUDA_CHECK;
     // TODO: compute epsilon on GPU
     computeEpsilonGlobalMemCuda(d_epsU, handle, d_imgInPad, d_imgUpConv, pad_img_size, 5e-3);
-    cudaMemcpy(&epsU, d_epsU, sizeof(float), cudaMemcpyDeviceToHost);
-    std::cout<<"Value of epsilon: "<<epsU<<std::endl;
 
     // TODO: update output image u = u - eps*grad
         // USE CUBLAS AXPY() FUNCTION HERE
     cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
-    alpha = -1.0f;
     cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPad, 1);
 
 
     //convoluton of k^y*y^{t+1}
-    computeDownConvolutionGlobalMemCuda(d_imgDownConv0, 
+    computeDownConvolutionGlobalMemCuda(d_imgDownConv1, 
                                         d_imgInPad, 
                                         d_kernel, 
                                         padw, 
@@ -232,29 +236,31 @@
     //Substraction with f
     alpha = -1.0f;
     cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
-    cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
+    cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv1, 1); CUDA_CHECK;
 
-    //Downconvolution with image as kernel
-    computeDownConvolutionGlobalMemCuda(d_gradk, 
-                                        d_imgInPad, 
-                                        d_kernel, 
-                                        padw, 
-                                        padh, 
-                                        nc, 
-                                        mk, nk);
-
-    // copy input data to GPU 
-    
 
     // flip image
+    // Ravi has checked that rotation is correct
+    for(int c = 0; c < nc; ++c){
+        rotateKernel_180(&d_imgPadRot[c*padw*padh], &d_imgInPad[c*padw*padh], 
+                padw, padh); 
+    }
 
     // TODO: perform convolution: k = u * u_pad
-    computeImageConvilution(d_kernel_temp, mk, nk ,
-                            d_imgIn, d_imgInBuffer, 
+    computeImageConvolution(d_kernel_temp, mk, nk ,
+                            d_imgDownConv1, d_imgInBuffer, 
                             w, h, 
-                            d_imgInPad, padw, padh, 
+                            d_imgPadRot, padw, padh, 
                             nc); 
+    /*computeDownConvolutionGlobalMemCuda(d_kernel_temp, */
+                                        /*d_imgPadRot, */
+                                        /*d_imgDownConv1, */
+                                        /*padw, */
+                                        /*padh, */
+                                        /*nc, */
+                                        /*w, h);*/
     
+    computeEpsilonGlobalMemCuda(d_epsK, handle, d_kernel, d_kernel_temp, kn, 1e-3);
 	// convert range of each channel to [0,1]
 	// init raw input image array (and convert to layered)
 
@@ -281,8 +287,12 @@
     cv::Mat mImgDownConv0(h, w, mIn.type());
     cv::Mat mImgUpConv(padh, padw, mIn.type());
     
+    cudaMemcpy(&epsU, d_epsU, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&epsK, d_epsK, sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout << "Value of epsilonU: " << epsU << std::endl;
+    std::cout << "Value of epsilonK: " << epsK << std::endl;
     cudaMemcpy(dx_fw, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
-    cudaMemcpy(imgInPad, d_imgInPad, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(imgInPad, d_imgPadRot, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_fw, d_dy_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
     cudaMemcpy(dx_bw, d_dx_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
@@ -294,7 +304,7 @@
     cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
 
-    cudaMemcpy(imgDownConv0, d_imgDownConv0, img_size * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(imgDownConv0, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
 
     cudaMemcpy(div, d_div, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
@@ -315,6 +325,24 @@
         /*div[i] *= scale;*/
         /*std::cout << i << "  ---  " << dx_fw[i] << std::endl;*/
     /*}*/
+    //DEBUG STARTS
+    cudaMemcpy(kernel, d_kernel_temp, kn*sizeof(float), cudaMemcpyDeviceToHost);
+
+    for(int i = 0;  i < nk; ++i){
+        for(int j = 0; j < mk; ++j){
+            std::cout << kernel[j + i*mk] << "   ";
+        }
+        std::cout << std::endl;
+    }
+    
+    for(int i = 0;  i < 10; ++i){
+        for(int j = 0; j < 10; ++j){
+            std::cout << imgDownConv0[j + i*w] << "   ";
+        }
+        std::cout << std::endl;
+    }
+
+    //DEBUG ENDS
     
 
 	// show output image: first convert to interleaved opencv format from the layered raw array
@@ -364,6 +392,7 @@
 
     cudaFree(d_imgIn); CUDA_CHECK;
     cudaFree(d_imgInPad); CUDA_CHECK;
+    cudaFree(d_imgPadRot); CUDA_CHECK;
     cudaFree(d_imgInBuffer); CUDA_CHECK;
     cudaFree(d_imgOut); CUDA_CHECK;
     cudaFree(d_kernel); CUDA_CHECK;
@@ -377,8 +406,10 @@
     cudaFree(d_dy_mixed); CUDA_CHECK;
 
     cudaFree(d_imgDownConv0); CUDA_CHECK;
+    cudaFree(d_imgDownConv1); CUDA_CHECK;
     cudaFree(d_imgUpConv); CUDA_CHECK;
     cudaFree(d_epsU); CUDA_CHECK;
+    cudaFree(d_epsK); CUDA_CHECK;
 
     cudaFree(d_div); CUDA_CHECK;
 

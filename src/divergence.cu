@@ -32,21 +32,26 @@ void computeGradientsKernel(float *dx_fw, float *dy_fw,
                           ? imgIn[getIndex(x, y + 1, w) + offset] : 0.0f;  
                 float down = (y > 0) 
                            ? imgIn[getIndex(x, y - 1, w) + offset] : 0.0f;  
+                float top_left = ((x > 0) && (y < h - 1)) 
+                                   ? imgIn[getIndex(x - 1, y + 1, w) + offset] : 0.0f;
 
-                float top_right = ((x < w - 1) && (y < h - 1)) 
-                               ? imgIn[getIndex(x + 1, y + 1, w) + offset] : 0.0f;
+                float down_right = ((x < w - 1) && (y > 0)) 
+                                    ? imgIn[getIndex(x + 1, y - 1, w) + offset] : 0.0f;
+                /*float top_right = ((x < w - 1) && (y < h - 1)) */
+                               /*? imgIn[getIndex(x + 1, y + 1, w) + offset] : 0.0f;*/
 
-                float down_left = ((x > 0) && (y > 0)) 
-                                 ? imgIn[getIndex(x - 1, y - 1, w) + offset] : 0.0f;
+                /*float down_left = ((x > 0) && (y > 0)) */
+                                 /*? imgIn[getIndex(x - 1, y - 1, w) + offset] : 0.0f;*/
 
                 dx_fw[getIndex(x, y, w) + offset] = right - center;
                 dy_fw[getIndex(x, y, w) + offset] = top - center;
 
                 dx_bw[getIndex(x, y, w) + offset] = center - left;
                 dy_bw[getIndex(x, y, w) + offset] = center - down;
-
-                dx_mixed[getIndex(x, y, w) + offset] = top_right - top;
-                dy_mixed[getIndex(x, y, w) + offset] = down_left - left;
+                dx_mixed[getIndex(x, y, w) + offset] = down_right - down;
+                dy_mixed[getIndex(x, y, w) + offset] = top_left - left;
+                /*dx_mixed[getIndex(x, y, w) + offset] = top_right - top;*/
+                /*dy_mixed[getIndex(x, y, w) + offset] = down_left - left;*/
             }
         }
     }

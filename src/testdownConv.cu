@@ -11,10 +11,10 @@ void downConvTest(){
     
     // Initialize variables
     size_t nc = 1;
-    size_t w = 5; 
-    size_t h = 9;
-    size_t m = 17; 
-    size_t n = 11;
+    size_t w = 7; 
+    size_t h = 7;
+    size_t m = 5; 
+    size_t n = 5;
     size_t inSizeX = n+1;
     size_t inSizeY = m+1;
     size_t outSizeX = n-w+1;  
@@ -49,12 +49,12 @@ void downConvTest(){
 		{
 			dummyGradU[i] = 3000.0f;
 		}
-        imgIn[i] = 3.0f;
+        imgIn[i] = 1.0f;
     }
     
     for(int i=0; i<kernelSize; i++)
     {
-        kernel[i] = .35f;
+        kernel[i] = 1.0f;
     }    
     
     for(int i=0; i<outSize ; i++)
