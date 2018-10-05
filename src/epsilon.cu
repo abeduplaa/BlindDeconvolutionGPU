@@ -36,7 +36,6 @@ void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float 
     CUDA_CHECK;
 
 	// subtract one due to BLAS starting at 1
-    std::cout<< " a and grad"<<a_i<<"   "<<grad_i<<std::endl;
 	a_i -= 1;
     grad_i -= 1;
     

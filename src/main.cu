@@ -117,6 +117,7 @@
 
     float *div = new float[pad_img_size];
     float epsU = 0.0f;
+    float alpha = -1.0f;
 
 
     // TODO: ALLOCATE MEMORY ON GPU
@@ -184,7 +185,7 @@
                                         mk, nk);
 
     // DONE: cublas subtract k(+)*u - f. Move that to a separate function
-    float alpha = -1.0f;
+    alpha = -1.0f;
     cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
     cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
     
@@ -212,9 +213,34 @@
 
     // TODO: update output image u = u - eps*grad
         // USE CUBLAS AXPY() FUNCTION HERE
-    /*cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);*/
+    cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
     alpha = -1.0f;
-    cublasSaxpy(handle, pad_img_size, &alpha, d_imgUpConv, 1, d_imgInPad, 1);
+    cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPad, 1);
+
+
+    //convoluton of k^y*y^{t+1}
+    computeDownConvolutionGlobalMemCuda(d_imgDownConv0, 
+                                        d_imgInPad, 
+                                        d_kernel, 
+                                        padw, 
+                                        padh, 
+                                        nc, 
+                                        mk, nk);
+
+    //Substraction with f
+    alpha = -1.0f;
+    cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+    cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
+
+    //Downconvolution with image as kernel
+    computeDownConvolutionGlobalMemCuda(d_gradk, 
+                                        d_imgInPad, 
+                                        d_kernel, 
+                                        padw, 
+                                        padh, 
+                                        nc, 
+                                        mk, nk);
+
     // copy input data to GPU 
     
 
@@ -249,84 +275,6 @@
     cudaMemcpy(imgInPad, d_imgInPad, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_fw, d_dy_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     cudaMemcpy(dx_bw, d_dx_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_bw, d_dy_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
@@ -344,19 +292,19 @@
     CUDA_CHECK;
 
     //copy data from GPU to CPU
-    float scale = 10.0;
-    for (size_t i = 0; i < pad_img_size; ++i) {
-        dx_fw[i] *= scale;
-        dy_fw[i] *= scale;
+    /*float scale = 10.0;*/
+    /*for (size_t i = 0; i < pad_img_size; ++i) {*/
+        /*dx_fw[i] *= scale;*/
+        /*dy_fw[i] *= scale;*/
 
-        dx_bw[i] *= scale;
-        dy_bw[i] *= scale;
+        /*dx_bw[i] *= scale;*/
+        /*dy_bw[i] *= scale;*/
 
-        dx_mixed[i] *= scale;
-        dy_mixed[i] *= scale;
-        div[i] *= scale;
+        /*dx_mixed[i] *= scale;*/
+        /*dy_mixed[i] *= scale;*/
+        /*div[i] *= scale;*/
         /*std::cout << i << "  ---  " << dx_fw[i] << std::endl;*/
-    }
+    /*}*/
     
 
 	// show output image: first convert to interleaved opencv format from the layered raw array
