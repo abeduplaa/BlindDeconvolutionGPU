@@ -20,6 +20,7 @@ void computeGradientsKernel(float *dx_fw, float *dy_fw,
         int idx = threadIdx.x + blockIdx.x * blockDim.x;
         int idy = threadIdx.y + blockIdx.y * blockDim.y;
 
+        // TODO: flip x and y loops
         for (int x = idx; x < w; x += blockDim.x * gridDim.x) {
             for (int y = idy; y < h; y += blockDim.y * gridDim.y) {
                 float center = imgIn[getIndex(x, y, w) + offset];
