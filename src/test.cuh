@@ -3,6 +3,7 @@
 
 #include "pad.cuh"
 #include "upConvolution.cuh"
+#include "downConvolution.cuh"
 #include <iostream>
 #include <string>
 #include <opencv2/highgui/highgui.hpp>

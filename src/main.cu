@@ -9,6 +9,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include "test.cuh"
 #include "helper.cuh"
 #include "downConvolution.cuh"
 #include "testdownConv.cuh"
@@ -252,13 +253,6 @@
                             w, h, 
                             d_imgPadRot, padw, padh, 
                             nc); 
-    /*computeDownConvolutionGlobalMemCuda(d_kernel_temp, */
-                                        /*d_imgPadRot, */
-                                        /*d_imgDownConv1, */
-                                        /*padw, */
-                                        /*padh, */
-                                        /*nc, */
-                                        /*w, h);*/
     
     computeEpsilonGlobalMemCuda(d_epsK, handle, d_kernel, d_kernel_temp, kn, 1e-3);
 	// convert range of each channel to [0,1]
@@ -289,8 +283,6 @@
     
     cudaMemcpy(&epsU, d_epsU, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&epsK, d_epsK, sizeof(float), cudaMemcpyDeviceToHost);
-    std::cout << "Value of epsilonU: " << epsU << std::endl;
-    std::cout << "Value of epsilonK: " << epsK << std::endl;
     cudaMemcpy(dx_fw, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(imgInPad, d_imgPadRot, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_fw, d_dy_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
@@ -326,7 +318,11 @@
         /*std::cout << i << "  ---  " << dx_fw[i] << std::endl;*/
     /*}*/
     //DEBUG STARTS
+    /*simpleTest(argc, argv);*/
     cudaMemcpy(kernel, d_kernel_temp, kn*sizeof(float), cudaMemcpyDeviceToHost);
+
+    std::cout << "Value of epsilonU: " << epsU << std::endl;
+    std::cout << "Value of epsilonK: " << epsK << std::endl;
 
     for(int i = 0;  i < nk; ++i){
         for(int j = 0; j < mk; ++j){
@@ -353,14 +349,14 @@
     convertLayeredToMat(mImgDownConv0, imgDownConv0);
     convertLayeredToMat(mImgUpConv, imgUpConv);
 
-    size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
-    showImage("Input", mIn, pos_orig_x, pos_orig_y);
-    showImage("dx", m_dx, pos_orig_x + w, pos_orig_y);
-    showImage("dy", m_dy, pos_orig_x, pos_orig_y + w + shift_y);
-    showImage("divergence", m_div, pos_orig_x + w, pos_orig_y + w + shift_y);
-    showImage("Pad", mPadImg, 100, 140);
-    showImage("Down Conv 0", mImgDownConv0, 200, 240);
-    showImage("Up Conv", mImgUpConv, 300, 340);
+    /*size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; */
+    /*showImage("Input", mIn, pos_orig_x, pos_orig_y);*/
+    /*showImage("dx", m_dx, pos_orig_x + w, pos_orig_y);*/
+    /*showImage("dy", m_dy, pos_orig_x, pos_orig_y + w + shift_y);*/
+    /*showImage("divergence", m_div, pos_orig_x + w, pos_orig_y + w + shift_y);*/
+    /*showImage("Pad", mPadImg, 100, 140);*/
+    /*showImage("Down Conv 0", mImgDownConv0, 200, 240);*/
+    /*showImage("Up Conv", mImgUpConv, 300, 340);*/
 
 	//convertLayeredToMat(mOut, imgOut);
 	//showImage("Output", mOut, 100+w+40, 100);

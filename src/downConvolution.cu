@@ -122,29 +122,24 @@ void computeImageConvolution(float *imgInBuffer,
                              const int delta_x, const int delta_y,
                              const int nc) {
 
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    int idy = threadIdx.y + blockIdx.y * blockDim.y;
+
     for (int channel = 0; channel < nc; ++channel) {
 
         int offset = w * h * channel;
-        int idx = threadIdx.x + blockIdx.x * blockDim.x;
-        int idy = threadIdx.y + blockIdx.y * blockDim.y;
+        int offset_pad_img = padw * padh * channel;
 
-        for (int y = idy; y < padh; y += blockDim.y * gridDim.y) {
-            for (int x = idx; x < padw; x += blockDim.x * gridDim.x) {
+        for (int y = idy; y < h; y += blockDim.y * gridDim.y) {
+            for (int x = idx; x < w; x += blockDim.x * gridDim.x) {
 
                 int relative_x = x + delta_x; 
                 int relative_y = y + delta_y; 
-
-                /*relative_x = relative_x < 0 ? 0 : relative_x;*/
-                /*relative_x = relative_x > w ? w - 1 : relative_x;*/
-
-                /*relative_y = relative_y < 0 ? 0 : relative_y;*/
-                /*relative_y = relative_y > h ? h - 1 : relative_y;*/
                 
                 int kernel_index = getIndex(x, y, w) + offset;
-                int image_index = getIndex(relative_x, relative_y, padw) + offset;
+                int image_index = getIndex(relative_x, relative_y, padw) + offset_pad_img;
 
                 imgInBuffer[kernel_index] = imgIn[kernel_index] * imgInPad[image_index];
-                /*atomicAdd(sum, imgInBuffer[kernel_index]);*/
             }
         }
     }
@@ -160,7 +155,7 @@ void computeImageConvolution(float *d_kernel_temp, const int mk, const int nk ,
 
 	// allocate block and grid size
 	dim3 block(32, 8, 1);
-	dim3 grid = computeGrid2D(block, padw, padh);
+	dim3 grid = computeGrid2D(block, w, h);
     // determine the size of temp buffer
     void *d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
@@ -188,7 +183,11 @@ void computeImageConvolution(float *d_kernel_temp, const int mk, const int nk ,
                                                      padw, padh,
                                                      delta_x, delta_y,
                                                      nc);
+            
             CUDA_CHECK;
+            cudaThreadSynchronize();
+
+
             cub::DeviceReduce::Sum<float*, float*>(d_temp_storage,
                                                    temp_storage_bytes,
                                                    d_imgInBuffer,
