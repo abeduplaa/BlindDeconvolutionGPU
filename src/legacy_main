@@ -8,7 +8,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <stdlib.h>
 
 #include "test.cuh"
 #include "helper.cuh"
@@ -21,53 +20,22 @@
 #include "epsilon.cuh"
 #include "selectNonZero.cuh"
 #include "normalise.cuh"
-
-#include <Python.h>
-#include <numpy/arrayobject.h>
-
-/*#include <python3.5m/Python.h>*/
-/*#include <python3.5m/numpy/arrayobject.h>*/
-
+#include <python2.7/Python.h>
 #include "cublas_v2.h"
 
 
-int main(int argc,char **argv) {
+/*int main(int argc,char **argv)*/
+/*{*/
+    /*downConvTest();*/
+/*}*/
+
+
+
+ int main(int argc,char **argv) {
 
     // TODO: ADD COMMAND LINE FUNCTIONS LATER
 
-    Py_Initialize();
-    PyObject *pName, *pModule, *pFunc;
-    PyObject *pArgs;
-    PyObject *numpy_kernel, *numpy_image, *numpy_output;
-
-    pName = PyUnicode_DecodeFSDefault("scipy.signal");
-    pModule = PyImport_Import(pName);
-    Py_DECREF(pName);
-
-    if (pModule == NULL) {
-        std::cout << "ERROR: cannot import scipy lib" << std::endl;
-        PyErr_Print();
-        exit(1);
-    }
-    else {
-        std::cout << "PYTHON: managed to link scipy lib" << std::endl;
-    }
-
-    pFunc = PyObject_GetAttrString(pModule, "convolve");
-    if (PyCallable_Check(pFunc) == 0) {
-        std::cout << "ERROR: cannot link convolve2d function" << std::endl;
-        PyErr_Print();
-        exit(1);
-    }
-
-    Py_INCREF(pFunc);
-    PyObject* mode = PyUnicode_FromString("valid"); 
-    PyObject* method = PyUnicode_FromString("direct"); 
-    pArgs = PyTuple_New(4);
-
-    // call this function to be able to use numpy arrays
-    import_array();
-
+    /*Py_Initialize();*/
     // parse command line parameters
     const char *params = {
         "{image| |input image}"
@@ -160,10 +128,7 @@ int main(int argc,char **argv) {
     float epsU, epsK = 0.0f;
     float alpha = -1.0f;
 
-    // Python
-    float *scp_kernel = new float [pad_img_size];
-    float *scp_image = new float [pad_img_size];
-    float *scp_updated_kernel = new float [kn];
+
     // TODO: ALLOCATE MEMORY ON GPU
     // allocate arrays on GPU
     float *d_imgIn = NULL;
@@ -226,7 +191,6 @@ int main(int argc,char **argv) {
     padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, mk, nk);
 
     for(int iterations = 0; iterations < iter; ++iterations){
-
         std::cout << "Iteration num:  " << iterations << std::endl;
         computeDownConvolutionGlobalMemCuda(d_imgDownConv0, 
                                             d_imgInPad, 
@@ -239,15 +203,18 @@ int main(int argc,char **argv) {
         // DONE: cublas subtract k(+)*u - f. Move that to a separate function
         alpha = -1.0f;
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+        cudaThreadSynchronize();
 
         cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
+        cudaThreadSynchronize();
         
         // TODO: compute(mirror, rotate) kernel
         rotateKernel_180(d_kernel_temp, d_kernel, mk, nk); 
+        cudaThreadSynchronize();
 
         // TODO: check the list of  parameters 
-        computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel_temp,
-                                          w, h, nc, mk, nk);
+        computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel_temp, w, h, nc, mk, nk);
+        cudaThreadSynchronize();
 
         // compute gradient and divergence
         computeDiffOperatorsCuda(d_div, 
@@ -255,18 +222,23 @@ int main(int argc,char **argv) {
                                  d_dx_bw, d_dy_bw,
                                  d_dx_mixed, d_dy_mixed, 
                                  d_imgInPad, padw, padh, nc, 1.0f, eps);
+        cudaThreadSynchronize();
         /*cudaThreadSynchronize();*/
 
         // TODO: subtract the divergence from upconvolution result (RAVIL)
         alpha = -1.0f * lambda;
         cublasSaxpy(handle, pad_img_size, &alpha, d_div, 1, d_imgUpConv, 1); CUDA_CHECK;
+        cudaThreadSynchronize();
         // TODO: compute epsilon on GPU
         computeEpsilonGlobalMemCuda(d_epsU, handle, d_imgInPad, d_imgUpConv, pad_img_size, 5e-3);
+        cudaThreadSynchronize();
 
         // TODO: update output image u = u - eps*grad
             // USE CUBLAS AXPY() FUNCTION HERE
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
+        cudaThreadSynchronize();
         cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPad, 1);
+        cudaThreadSynchronize();
 
 
         //convoluton of k^y*y^{t+1}
@@ -277,11 +249,14 @@ int main(int argc,char **argv) {
                                             padh, 
                                             nc, 
                                             mk, nk);
+        cudaThreadSynchronize();
 
         //Substraction with f
         alpha = -1.0f;
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+        cudaThreadSynchronize();
         cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv1, 1); CUDA_CHECK;
+        cudaThreadSynchronize();
 
 
         // flip image
@@ -289,75 +264,99 @@ int main(int argc,char **argv) {
         for(int c = 0; c < nc; ++c){
             rotateKernel_180(&d_imgPadRot[c*padw*padh], &d_imgInPad[c*padw*padh], 
                     padw, padh); 
+        cudaThreadSynchronize();
         }
 
         // TODO: perform convolution: k = u * u_pad
-        /*computeImageConvolution(d_kernel_temp, mk, nk ,*/
-                                /*d_imgDownConv1, d_imgInBuffer, */
-                                /*w, h, */
-                                /*d_imgPadRot, padw, padh, */
-                                /*nc); */
+        computeImageConvolution(d_kernel_temp, mk, nk ,
+                                d_imgDownConv1, d_imgInBuffer, 
+                                w, h, 
+                                d_imgPadRot, padw, padh, 
+                                nc); 
 
-
-        cudaMemcpy(scp_kernel, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);
-        cudaMemcpy(scp_image, d_imgPadRot, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        /*float *spc_kernel = new float[img_size];*/
+        /*float *updated_kernel = new float[kn];*/
+        /*float *spc_image = new float[pad_img_size];*/
         
-        int num_dim = 3;
-        npy_intp image_dims[3] = {(long)padw, (long)padh, num_dim};
-        numpy_image = PyArray_SimpleNewFromData(num_dim,
-                                                image_dims,
-                                                NPY_FLOAT,
-                                                scp_image);
+        /*cudaMemcpy(spc_kernel, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);*/
+        /*cudaMemcpy(spc_image, d_imgPadRot, img_size * sizeof(float), cudaMemcpyDeviceToHost);*/
+        /*CUDA_CHECK;*/
+
+        /*computeDownConvolutionCPU(updated_kernel, spc_image, spc_kernel, */
+                                  /*padw, padh, nc, w, h);*/
+  /*void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *kernel, */
+                                 /*int n, int m, int nc, int w, int h);*/
+  
+        /*for (int j = 0; j < nk; ++j) {*/
+            /*for(int i = 0; i < mk; ++i) {*/
+
+                /*updated_kernel[getIndex(i, j, mk)] = 0.0f;*/
+                /*for (int channel = 0; channel < nc; ++channel) {*/
+
+                    /*int kernel_offset = w * h * channel;*/
+                    /*int image_offset = padw * padh * channel;*/
+
+                    /*for (int y = 0; y < h; ++y){ */
+                        /*for (int x = 0; x < w; ++x) {*/
+
+                           /*int index_kernel = getIndex(x, y, w) + kernel_offset;*/
+                           /*int index_image = getIndex(x + i, y + j, padw) + image_offset;*/
+                           /*updated_kernel[getIndex(i, j, mk)] += */
+                               /*spc_kernel[index_kernel] * spc_image[index_image]; */
+                        /*}*/
+                    /*}*/
+
+                /*}*/
+
+            /*}*/
+        /*}*/
         
-
-        npy_intp kernel_dims[3] = {w, h, num_dim};
-        numpy_kernel = PyArray_SimpleNewFromData(num_dim,
-                                                 kernel_dims,
-                                                 NPY_FLOAT,
-                                                 scp_kernel);
-
-        PyTuple_SetItem(pArgs, 0, numpy_image);
-        PyTuple_SetItem(pArgs, 1, numpy_kernel);
-        PyTuple_SetItem(pArgs, 2, mode);
-        PyTuple_SetItem(pArgs, 3, method);
-
-        /*PyObject_CallObject(pFunc, pArgs);*/
-        PyObject *pOutput = PyObject_CallObject(pFunc, pArgs);
-        if (pOutput == NULL) {
-            std::cout << "cannot call scipy" << std::endl;
-            PyErr_Print();
-            exit(1);
-        }
-
-        scp_updated_kernel = (float*)PyArray_DATA(pOutput);
-
-        npy_intp *output_dim = PyArray_DIMS(pOutput);
-        std::cout << "kernel size after scipy: " 
-                  << output_dim[0] << "x"
-                  << output_dim[1] << "x" 
-                  << output_dim[2] << std::endl;
-
-        Py_INCREF(numpy_image);
-        Py_INCREF(numpy_kernel);
-        Py_INCREF(mode);
-        Py_INCREF(method);
-        Py_INCREF(pOutput);
-
-        cudaMemcpy(d_kernel_temp,
-                   scp_updated_kernel, 
-                   kn * sizeof(float), cudaMemcpyHostToDevice);
-
+        /*std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;*/
+        /*for (int j = 0; j < nk; ++j) {*/
+            /*for(int i = 0; i < mk; ++i) {*/
+                /*std::cout << updated_kernel[getIndex(i,j,mk)] << " ";*/
+            /*}*/
+            /*std::cout << std::endl;*/
+        /*}*/
+        
+        /*std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;*/
+        cudaThreadSynchronize();
+        
         computeEpsilonGlobalMemCuda(d_epsK, handle, d_kernel, d_kernel_temp, kn, 1e-3);
+        cudaThreadSynchronize();
+        /*cudaMemcpy(kernel, d_kernel_temp, kn*sizeof(float), cudaMemcpyDeviceToHost);*/
+
+        /*std::cout << "Grad k" << std::endl;*/
+        /*for(int i = 0;  i < nk; ++i){*/
+            /*for(int j = 0; j < mk; ++j){*/
+                /*std::cout << kernel[j + i*mk] << "   ";*/
+            /*}*/
+            /*std::cout << std::endl;*/
+        /*}*/
 
         //update kernel
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
+        cudaThreadSynchronize();
         cublasSaxpy(handle, kn, d_epsK, d_kernel_temp, 1, d_kernel, 1);
+        cudaThreadSynchronize();
+
+        /*cudaMemcpy(kernel, d_kernel, kn*sizeof(float), cudaMemcpyDeviceToHost);*/
+
+        /*std::cout << "After time update" << std::endl;*/
+        /*for(int i = 0;  i < nk; ++i){*/
+            /*for(int j = 0; j < mk; ++j){*/
+                /*std::cout << kernel[j + i*mk] << "   ";*/
+            /*}*/
+            /*std::cout << std::endl;*/
+        /*}*/
 
         //select non zero kernel
         selectNonZeroGlobalMemCuda(d_kernel, mk, nk);
+        cudaThreadSynchronize();
 
         //normalise kernel
         normaliseGlobalMemCuda(d_kernel, mk, nk);
+        cudaThreadSynchronize();
 
         //update lambda
         lambda = 0.99f * lambda;
@@ -366,12 +365,25 @@ int main(int argc,char **argv) {
         }
 
     }
+	// convert range of each channel to [0,1]
+	// init raw input image array (and convert to layered)
+
+	// TODO:  IMPLEMENT THESE FUNCTIONS
+	// 1. pre-process: pad image
+	
+
+// 2. perform blind de-convolution
 
 
 
+	// padImage(imgIn);
+	// computeDeconvolution(imgOut, imgIn, kernel, w, h, nc);
 
+
+	//cudaMemcpy(imgOut,d_imgOut,nbytes,cudaMemcpyDeviceToHost);
 
 	// show input image
+    
     cv::Mat m_dx(padh, padw, mIn.type());
     cv::Mat m_dy(padh, padw, mIn.type());
     cv::Mat m_div(padh, padw, mIn.type());
@@ -383,7 +395,7 @@ int main(int argc,char **argv) {
     cudaMemcpy(&epsU, d_epsU, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&epsK, d_epsK, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(dx_fw, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
-    cudaMemcpy(imgInPad, d_imgInPad, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
+    cudaMemcpy(imgInPad, d_imgPadRot, pad_img_size* sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
     cudaMemcpy(dy_fw, d_dy_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
 
     cudaMemcpy(dx_bw, d_dx_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost); CUDA_CHECK;
@@ -405,14 +417,26 @@ int main(int argc,char **argv) {
     cudaMemcpy(imgUpConv, d_imgUpConv, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
 
+    //copy data from GPU to CPU
+    /*float scale = 10.0;*/
+    /*for (size_t i = 0; i < pad_img_size; ++i) {*/
+        /*dx_fw[i] *= scale;*/
+        /*dy_fw[i] *= scale;*/
 
+        /*dx_bw[i] *= scale;*/
+        /*dy_bw[i] *= scale;*/
 
+        /*dx_mixed[i] *= scale;*/
+        /*dy_mixed[i] *= scale;*/
+        /*div[i] *= scale;*/
+        /*std::cout << i << "  ---  " << dx_fw[i] << std::endl;*/
+    /*}*/
+    //DEBUG STARTS
     /*simpleTest(argc, argv);*/
     std::cout << "Value of epsilonU: " << epsU << std::endl;
     std::cout << "Value of epsilonK: " << epsK << std::endl;
     cudaMemcpy(kernel, d_kernel_temp, kn*sizeof(float), cudaMemcpyDeviceToHost);
 
-    std::cout << "----------------------" << std::endl;
     for(int i = 0;  i < nk; ++i){
         for(int j = 0; j < mk; ++j){
             std::cout << kernel[j + i*mk] << "   ";
@@ -420,7 +444,6 @@ int main(int argc,char **argv) {
         std::cout << std::endl;
     }
    
-    std::cout << "----------------------" << std::endl;
     std::cout << "SAXPY" << std::endl;
     for(int i = 0;  i < 5; ++i){
         for(int j = 0; j < 5; ++j){
@@ -478,11 +501,6 @@ int main(int argc,char **argv) {
     delete [] div;
     delete [] kernel;
 
-    // Python
-    delete [] scp_kernel;
-    delete [] scp_image;
-    delete [] scp_updated_kernel;
-
     cudaFree(d_imgIn); CUDA_CHECK;
     cudaFree(d_imgInPad); CUDA_CHECK;
     cudaFree(d_imgPadRot); CUDA_CHECK;
@@ -510,7 +528,7 @@ int main(int argc,char **argv) {
 
     // close all opencv windows
     cv::destroyAllWindows();
-    Py_Finalize();
+    /*Py_Finalize();*/
     return 0;
 } 
 

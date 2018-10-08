@@ -90,7 +90,7 @@ void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *k
 					{
 						kidx = in_idx - (kRadius_w - ki) - ( (kRadius_h - kj)*n);
 						// std::cout<< "convolution multiplication, k: " << ki+kj*w << ", input: " << kidx << " , value: " << kernel[ki + kj*w] * imgIn[kidx] <<  "\n";
-						imgOut[out_idx] += kernel[ki + kj*w] * imgIn[kidx];
+						imgOut[out_idx - c*imgOut_h*imgOut_w] += kernel[ki + kj*w + c*imgOut_h*imgOut_w] * imgIn[kidx];
 					}
 				}
 			}
@@ -192,7 +192,7 @@ void computeImageConvolution(float *d_kernel_temp, const int mk, const int nk ,
                                                    temp_storage_bytes,
                                                    d_imgInBuffer,
                                                    &d_kernel_temp[kernel_index],
-                                                   w*h*nc);
+                                                   w * h * nc);
             cudaThreadSynchronize();
         }
     }

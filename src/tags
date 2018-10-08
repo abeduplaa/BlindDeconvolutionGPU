@@ -30,11 +30,8 @@ ARCHITECTURE_ID	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	420;
 ARCHITECTURE_ID	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	423;"	d	file:
 ARCHITECTURE_ID	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	426;"	d	file:
 ARCHITECTURE_ID	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	430;"	d	file:
-CMAKE_BINARY_DIR	Makefile	/^CMAKE_BINARY_DIR = \/usr\/prakt\/s0012\/Desktop\/s0012\/BlindDeconvolutionGPU\/src$/;"	m
 CMAKE_BINARY_DIR	build/Makefile	/^CMAKE_BINARY_DIR = \/home\/ravil\/Documents\/university\/cuda-convision\/project\/BlindDeconvolutionGPU\/src\/build$/;"	m
-CMAKE_COMMAND	Makefile	/^CMAKE_COMMAND = \/usr\/bin\/cmake$/;"	m
 CMAKE_COMMAND	build/Makefile	/^CMAKE_COMMAND = \/usr\/bin\/cmake$/;"	m
-CMAKE_SOURCE_DIR	Makefile	/^CMAKE_SOURCE_DIR = \/usr\/prakt\/s0012\/Desktop\/s0012\/BlindDeconvolutionGPU\/src$/;"	m
 CMAKE_SOURCE_DIR	build/Makefile	/^CMAKE_SOURCE_DIR = \/home\/ravil\/Documents\/university\/cuda-convision\/project\/BlindDeconvolutionGPU\/src$/;"	m
 COMPILER_ID	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	101;"	d	file:
 COMPILER_ID	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	108;"	d	file:
@@ -264,7 +261,6 @@ C_DIALECT	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	523;"	d	file:
 C_DIALECT	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	525;"	d	file:
 DEC	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	447;"	d	file:
 DEC	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	434;"	d	file:
-EQUALS	Makefile	/^EQUALS = =$/;"	m
 EQUALS	build/Makefile	/^EQUALS = =$/;"	m
 HEX	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	458;"	d	file:
 HEX	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	445;"	d	file:
@@ -331,9 +327,7 @@ PLATFORM_ID	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	370;"	d	
 PLATFORM_ID	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	373;"	d	file:
 PLATFORM_ID	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	376;"	d	file:
 PLATFORM_ID	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	380;"	d	file:
-RM	Makefile	/^RM = \/usr\/bin\/cmake -E remove -f$/;"	m
 RM	build/Makefile	/^RM = \/usr\/bin\/cmake -E remove -f$/;"	m
-SHELL	Makefile	/^SHELL = \/bin\/sh$/;"	m
 SHELL	build/Makefile	/^SHELL = \/bin\/sh$/;"	m
 SIMULATE_ID	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	163;"	d	file:
 SIMULATE_ID	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	178;"	d	file:
@@ -357,7 +351,6 @@ STRINGIFY	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	297;"	d	file:
 STRINGIFY	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	284;"	d	file:
 STRINGIFY_HELPER	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	296;"	d	file:
 STRINGIFY_HELPER	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	283;"	d	file:
-SUFFIXES	Makefile	/^SUFFIXES =$/;"	m
 SUFFIXES	build/Makefile	/^SUFFIXES =$/;"	m
 a_i	epsilon.cu	/^    int a_i = 0;$/;"	l
 absgradU	epsilon.cu	/^	float *absgradU = new float[size];$/;"	l
@@ -378,6 +371,8 @@ computeEpsilon	epsilon.cu	/^float computeEpsilon(const float *imgIn, const float
 computeEpsilonGlobalMemCuda	epsilon.cu	/^void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)$/;"	f
 computeEpsilonGlobalMemKernel	epsilon.cu	/^void computeEpsilonGlobalMemKernel(float *eps, const float *a, const int a_i, const float *grad, const int grad_i, const float smallnum)$/;"	f
 computeGradientsKernel	divergence.cu	/^void computeGradientsKernel(float *dx_fw, float *dy_fw,$/;"	f
+computeImageConvolution	downConvolution.cu	/^void computeImageConvolution(float *d_kernel_temp, const int mk, const int nk ,$/;"	f
+computeImageConvolution	downConvolution.cu	/^void computeImageConvolution(float *imgInBuffer,$/;"	f
 computeMaxElem	epsilon.cu	/^float computeMaxElem(const float *array,const float size)$/;"	f
 computeUpConvolutionCPU	upConvolution.cu	/^void computeUpConvolutionCPU(float *imgOut, const float *imgIn, $/;"	f
 computeUpConvolutionGlobalMemCuda	upConvolution.cu	/^void computeUpConvolutionGlobalMemCuda(float *imgOut, const float *imgIn,$/;"	f
@@ -399,29 +394,36 @@ d_dy_bw	main.cu	/^    float *d_dy_bw = NULL;$/;"	l
 d_dy_fw	main.cu	/^    float *d_dy_fw = NULL;$/;"	l
 d_dy_mixed	main.cu	/^    float *d_dy_mixed = NULL;$/;"	l
 d_eps	testdownConv.cu	/^	float* d_eps = NULL;	$/;"	l
+d_epsK	main.cu	/^    float *d_epsK = NULL;$/;"	l
 d_epsU	main.cu	/^    float *d_epsU = NULL;$/;"	l
 d_f	testdownConv.cu	/^    float* d_f = NULL;$/;"	l
+d_imgDownConv	test.cu	/^    float* d_imgDownConv = NULL;$/;"	l
 d_imgDownConv	testdownConv.cu	/^    float* d_imgDownConv = NULL;$/;"	l
 d_imgDownConv0	main.cu	/^    float *d_imgDownConv0 = NULL;$/;"	l
+d_imgDownConv1	main.cu	/^    float *d_imgDownConv1 = NULL;$/;"	l
 d_imgIn	main.cu	/^    float *d_imgIn = NULL;$/;"	l
 d_imgIn	test.cu	/^    float* d_imgIn = NULL;$/;"	l
 d_imgIn	testdownConv.cu	/^    float* d_imgIn = NULL;$/;"	l
+d_imgInBuffer	main.cu	/^    float *d_imgInBuffer = NULL;$/;"	l
+d_imgInBuffer	test.cu	/^    float* d_imgInBuffer = NULL;$/;"	l
 d_imgInPad	main.cu	/^    float *d_imgInPad = NULL;$/;"	l
 d_imgOut	main.cu	/^    float *d_imgOut = NULL;$/;"	l
 d_imgOut	test.cu	/^    float* d_imgOut = NULL;$/;"	l
 d_imgOut	testdownConv.cu	/^    float* d_imgOut = NULL;$/;"	l
+d_imgPadRot	main.cu	/^    float *d_imgPadRot = NULL;$/;"	l
 d_imgUpConv	main.cu	/^    float *d_imgUpConv = NULL;$/;"	l
 d_imgUpConv	test.cu	/^    float* d_imgUpConv = NULL;$/;"	l
 d_kernel	main.cu	/^    float *d_kernel = NULL;$/;"	l
 d_kernel	test.cu	/^    float* d_kernel = NULL;$/;"	l
 d_kernel	testdownConv.cu	/^    float* d_kernel = NULL;$/;"	l
-d_kernel_rot_180	main.cu	/^    float *d_kernel_rot_180 = NULL;$/;"	l
+d_kernel_temp	main.cu	/^    float *d_kernel_temp = NULL;$/;"	l
+d_temp_storage	downConvolution.cu	/^    void *d_temp_storage = NULL;$/;"	l
 data	helper.cu	/^    float *data = (float*)m.data;$/;"	l
 div	main.cu	/^    float *div = new float[pad_img_size];$/;"	l
 divideByNormKernel	normalise.cu	/^void divideByNormKernel(float* kernel, const int m,$/;"	f
 down	divergence.cu	/^                float down = (y > 0) $/;"	l
 downConvTest	testdownConv.cu	/^void downConvTest(){$/;"	f
-down_left	divergence.cu	/^                float down_left = ((x > 0) && (y > 0)) $/;"	l
+down_right	divergence.cu	/^                float down_right = ((x < w - 1) && (y > 0)) $/;"	l
 dummyGradU	testdownConv.cu	/^    float* dummyGradU = new float[inSize];$/;"	l
 dx_bw	main.cu	/^    float *dx_bw = new float[pad_img_size];$/;"	l
 dx_fw	main.cu	/^    float *dx_fw = new float[pad_img_size];$/;"	l
@@ -430,25 +432,32 @@ dy_bw	main.cu	/^    float *dy_bw = new float[pad_img_size];$/;"	l
 dy_fw	main.cu	/^    float *dy_fw = new float[pad_img_size];$/;"	l
 dy_mixed	main.cu	/^    float *dy_mixed = new float[pad_img_size];$/;"	l
 e	helper.cu	/^    cudaError_t e = cudaGetLastError();$/;"	l
-endl	epsilon.cu	/^    std::cout<< " a and grad"<<a_i<<"   "<<grad_i<<std::endl;$/;"	m	class:std	file:
 endl	helper.cu	/^                      << prev_file << ", line " << prev_line << std::endl;$/;"	m	class:std	file:
 endl	helper.cu	/^                  << ": " << cudaGetErrorString(e) << " (" << e << ")" << std::endl;$/;"	m	class:std	file:
 endl	helper.cu	/^        std::cerr << "arrays not allocated!" << std::endl;$/;"	m	class:std	file:
 endl	helper.cu	/^        std::cerr << "histogram not allocated!" << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^            std::cout << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^        std::cerr << "ERROR: Could not retrieve frame " << inputImage << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^        std::cout << "Iteration num:  " << iterations << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^        std::cout << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^     std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^    std::cout << "Image after Cropping: " << w << " x " << h  << " x " << nc << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^    std::cout << "Original Image: " << w << " x " << h  << " x " << nc << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^    std::cout << "Pad Image size" << padw << " x " << padh << " x " << nc << std::endl;$/;"	m	class:std	file:
-endl	main.cu	/^    std::cout<<"Value of epsilon: "<<epsU<<std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^    std::cout << "SAXPY" << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^    std::cout << "Value of epsilonK: " << epsK << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^    std::cout << "Value of epsilonU: " << epsU << std::endl;$/;"	m	class:std	file:
 endl	normalise.cu	/^        std::cout<< "Kernel not allocated"<<std::endl;$/;"	m	class:std	file:
 endl	pad.cu	/^        std::cout << "output not allocated" << std::endl;         $/;"	m	class:std	file:
 endl	pad.cu	/^        std::cout<< " input not allocated"<<std::endl;$/;"	m	class:std	file:
 endl	selectNonZero.cu	/^        std::cout<< "Kernel not allocated"<<std::endl;$/;"	m	class:std	file:
 endl	test.cu	/^            std::cout<<std::endl;$/;"	m	class:std	file:
 endl	test.cu	/^        std::cout<<"Channel no :  "<<c<<std::endl;$/;"	m	class:std	file:
-endl	test.cu	/^        std::cout<<"not enough entries"<<std::endl;$/;"	m	class:std	file:
+endl	test.cu	/^        std::cout<<std::endl;$/;"	m	class:std	file:
+endl	test.cu	/^    std::cout << "After Ravil's Down Conv" << std::endl;$/;"	m	class:std	file:
 endl	test.cu	/^    std::cout<<"After Up convolution"<<std::endl;$/;"	m	class:std	file:
+endl	test.cu	/^    std::cout<<"Buffer"<<std::endl;$/;"	m	class:std	file:
 endl	test.cu	/^    std::cout<<"Input Image"<<std::endl;$/;"	m	class:std	file:
 endl	test.cu	/^    std::cout<<"Output Image after padding"<<std::endl;$/;"	m	class:std	file:
 endl	testdownConv.cu	/^            std::cout<<std::endl;$/;"	m	class:std	file:
@@ -464,7 +473,8 @@ eps	testdownConv.cu	/^    float eps = 0;$/;"	l
 eps	testdownConv.cu	/^    std::cout<< "\\n" << "GPU epsilon value: " << eps << "\\n";$/;"	l
 epsCPU	testdownConv.cu	/^    float epsCPU = 0;$/;"	l
 epsCPU	testdownConv.cu	/^    std::cout<< "\\n" << "CPU epsilon value: " << epsCPU << "\\n";$/;"	l
-epsU	main.cu	/^    float epsU = 0.0f;$/;"	l
+epsK	main.cu	/^    float epsU, epsK = 0.0f;$/;"	l
+epsU	main.cu	/^    float epsU, epsK = 0.0f;$/;"	l
 f	testdownConv.cu	/^    float* f = new float[outSize];$/;"	l
 features	build/CMakeFiles/feature_tests.c	/^  const char features[] = {"\\n"$/;"	v
 features	build/CMakeFiles/feature_tests.cxx	/^  const char features[] = {"\\n"$/;"	v
@@ -473,6 +483,7 @@ gray	main.cu	/^     bool gray = cmd.get<bool>("bw");$/;"	l
 grid	adjustImage.cu	/^    dim3 grid = computeGrid1D(block, mk * nk);$/;"	l
 grid	divergence.cu	/^    dim3 grid = computeGrid2D(block, w, h);$/;"	l
 grid	downConvolution.cu	/^	dim3 grid = computeGrid2D(block, w - m + 1, h - n + 1);$/;"	l
+grid	downConvolution.cu	/^	dim3 grid = computeGrid2D(block, w, h);$/;"	l
 grid	epsilon.cu	/^	dim3 grid = computeGrid2D(block, 8, 8);$/;"	l
 grid	normalise.cu	/^    dim3 grid = computeGrid2D(block, m, n);$/;"	l
 grid	pad.cu	/^    dim3 grid = computeGrid2D(block, w + m - 1, h + n - 1);$/;"	l
@@ -481,8 +492,8 @@ grid	upConvolution.cu	/^    dim3 grid = computeGrid2D(block, w + m - 1, h + n - 
 h	downConvolution.cu	/^		std::cout << "\\n" << "n: " << n << ", w: " << w << ", m: " << m << ", h: " << h << "\\n";$/;"	l
 h	helper.cu	/^    int h = m.rows;$/;"	l
 h	main.cu	/^    int h = mIn.rows;         \/\/ height$/;"	l
-h	test.cu	/^    size_t w = std::stoi(argv[1]); size_t h = std::stoi(argv[2]);$/;"	l
-h	testdownConv.cu	/^    size_t h = 9;$/;"	l
+h	test.cu	/^    size_t w = 7; size_t h = 7;$/;"	l
+h	testdownConv.cu	/^    size_t h = 7;$/;"	l
 handle	main.cu	/^    cublasHandle_t handle;$/;"	l
 handle	normalise.cu	/^    cublasHandle_t handle;$/;"	l
 handle	testdownConv.cu	/^     cublasHandle_t handle;$/;"	l
@@ -496,6 +507,7 @@ id	upConvolution.cu	/^    int id, tempX, tempY;$/;"	l
 idx	adjustImage.cu	/^    int idx = threadIdx.x + blockIdx.x * blockDim.x;$/;"	l
 idx	divergence.cu	/^        int idx = threadIdx.x + blockIdx.x * blockDim.x;$/;"	l
 idx	downConvolution.cu	/^	int idx = threadIdx.x + blockIdx.x*blockDim.x;$/;"	l
+idx	downConvolution.cu	/^    int idx = threadIdx.x + blockIdx.x * blockDim.x;$/;"	l
 idx	normalise.cu	/^    int idx = threadIdx.x + blockDim.x*blockIdx.x;$/;"	l
 idx	pad.cu	/^    int idx = threadIdx.x + blockIdx.x*blockDim.x;$/;"	l
 idx	selectNonZero.cu	/^    int idx = threadIdx.x + blockDim.x*blockIdx.x;$/;"	l
@@ -503,11 +515,16 @@ idx	upConvolution.cu	/^    int id, idx, idy = 0;$/;"	l
 idx	upConvolution.cu	/^    int idx = threadIdx.x + blockIdx.x*blockDim.x;$/;"	l
 idy	divergence.cu	/^        int idy = threadIdx.y + blockIdx.y * blockDim.y;$/;"	l
 idy	downConvolution.cu	/^	int idy = threadIdx.y + blockIdx.y*blockDim.y;$/;"	l
+idy	downConvolution.cu	/^    int idy = threadIdx.y + blockIdx.y * blockDim.y;$/;"	l
 idy	normalise.cu	/^    int idy = threadIdx.y + blockDim.y*blockIdx.y;$/;"	l
 idy	pad.cu	/^    int idy = threadIdx.y + blockIdx.y*blockDim.y;$/;"	l
 idy	selectNonZero.cu	/^    int idy = threadIdx.y + blockDim.y*blockIdx.y;$/;"	l
 idy	upConvolution.cu	/^    int id, idx, idy = 0;$/;"	l
 idy	upConvolution.cu	/^    int idy = threadIdx.y + blockIdx.y*blockDim.y;$/;"	l
+image_index	downConvolution.cu	/^                int image_index = getIndex(relative_x, relative_y, padw) + offset_pad_img;$/;"	l
+image_offset	main.cu	/^                    int image_offset = padw * padh * channel;$/;"	l
+imgBuffer	test.cu	/^                std::cout<<imgBuffer[i + (j*w) + (c*w*h)]<<"   ";$/;"	l
+imgBuffer	test.cu	/^    float* imgBuffer = new float[inSize];$/;"	l
 imgDownConv	testdownConv.cu	/^                std::cout<<imgDownConv[i + (j*outSizeX) + (c*outSizeX*outSizeY)]<<"   ";$/;"	l
 imgDownConv	testdownConv.cu	/^    float* imgDownConv =  new float[outSize];$/;"	l
 imgDownConv0	main.cu	/^    float *imgDownConv0 = new float[img_size];$/;"	l
@@ -518,12 +535,15 @@ imgIn	test.cu	/^                std::cout<<imgIn[i + (j*w) + (c*w*h)]<<"   ";$/;
 imgIn	test.cu	/^    float* imgIn = new float[inSize];$/;"	l
 imgIn	testdownConv.cu	/^                std::cout<<imgIn[i + (j*w) + (c*w*h)]<<"   ";$/;"	l
 imgIn	testdownConv.cu	/^    float* imgIn = new float[inSize];$/;"	l
+imgInPad	main.cu	/^            std::cout << imgInPad[j + i*padw] << "   ";$/;"	l
 imgInPad	main.cu	/^    float *imgInPad = new float[pad_img_size]; \/\/TODO: check size (RAVI)$/;"	l
 imgOut	main.cu	/^    float *imgOut = new float[pad_img_size];$/;"	l
 imgOut	test.cu	/^                std::cout<<imgOut[i + (j*outSizeX) + (c*outSizeX*outSizeY)]<<"   ";$/;"	l
 imgOut	test.cu	/^    float* imgOut = new float[outSize];$/;"	l
 imgOut	testdownConv.cu	/^                std::cout<<imgOut[i + (j*outSizeX) + (c*outSizeX*outSizeY)]<<"   ";$/;"	l
 imgOut	testdownConv.cu	/^    float* imgOut = new float[outSize];$/;"	l
+imgOutDownConv	test.cu	/^            std::cout<<imgOutDownConv[i + (j*m)]<<"   ";$/;"	l
+imgOutDownConv	test.cu	/^    float* imgOutDownConv = new float[outSizeXdc * outSizeYdc * nc];$/;"	l
 imgOut_h	downConvolution.cu	/^	size_t imgOut_h = h - n + 1;$/;"	l
 imgOut_h	downConvolution.cu	/^	size_t imgOut_h = m - h + 1;$/;"	l
 imgOut_w	downConvolution.cu	/^	size_t imgOut_w = n - w + 1;$/;"	l
@@ -532,13 +552,15 @@ imgUpConv	main.cu	/^    float *imgUpConv = new float[pad_img_size];$/;"	l
 imgUpConv	test.cu	/^                std::cout<<imgUpConv[i + (j*outSizeX) + (c*outSizeX*outSizeY)]<<"   ";$/;"	l
 imgUpConv	test.cu	/^    float* imgUpConv =  new float[outSize];$/;"	l
 img_size	main.cu	/^	size_t img_size = w * h * nc;$/;"	l
-inSize	test.cu	/^    size_t inSize = w*h*nc;$/;"	l
+inSize	test.cu	/^    size_t inSize = w * h * nc;$/;"	l
 inSize	testdownConv.cu	/^    size_t inSize = m*n*nc;$/;"	l
 inSize	upConvolution.cu	/^    size_t inSize = w*h*nc;$/;"	l
 inSizeX	testdownConv.cu	/^    size_t inSizeX = n+1;$/;"	l
 inSizeY	testdownConv.cu	/^    size_t inSizeY = m+1;$/;"	l
 in_idx	downConvolution.cu	/^	int in_idx = 0;$/;"	l
 index	divergence.cu	/^                int index = getIndex(x, y, w) + offset; $/;"	l
+index_image	main.cu	/^                           int index_image = getIndex(x + i, y + j, padw) + image_offset;$/;"	l
+index_kernel	main.cu	/^                           int index_kernel = getIndex(x, y, w) + kernel_offset;$/;"	l
 info_arch	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^char const* info_arch = "INFO" ":" "arch[" ARCHITECTURE_ID "]";$/;"	v
 info_arch	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^char const* info_arch = "INFO" ":" "arch[" ARCHITECTURE_ID "]";$/;"	v
 info_compiler	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^char const* info_compiler = "INFO" ":" "compiler[" COMPILER_ID "]";$/;"	v
@@ -558,21 +580,27 @@ info_version	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^char 
 initialiseKernel	upConvolution.cu	/^void initialiseKernel(float *kernel, int m, int n){$/;"	f
 inputImage	main.cu	/^    std::string inputImage = cmd.get<std::string>("image");$/;"	l
 is_cpu	main.cu	/^     bool is_cpu = cmd.get<bool>("cpu");$/;"	l
+iter	main.cu	/^     int iter = cmd.get<int>("iter"); iter = ( iter <= 0 ) ? 1 : iter;$/;"	l
 kRadius_h	downConvolution.cu	/^	int kRadius_h = (h-1)\/2;$/;"	l
 kRadius_m	downConvolution.cu	/^	int kRadius_m = (m - 1) \/ 2;$/;"	l
 kRadius_n	downConvolution.cu	/^	int kRadius_n = (n - 1) \/ 2;$/;"	l
 kRadius_w	downConvolution.cu	/^	int kRadius_w = (w-1)\/2;$/;"	l
+kernel	main.cu	/^            std::cout << kernel[j + i*mk] << "   ";$/;"	l
 kernel	main.cu	/^    float *kernel = new float[kn * sizeof(float)];$/;"	l
 kernel	test.cu	/^    float* kernel = new float[m*n];$/;"	l
 kernel	testdownConv.cu	/^    float* kernel = new float[kernelSize];$/;"	l
 kernelSize	testdownConv.cu	/^	size_t kernelSize = h*w;$/;"	l
+kernel_index	downConvolution.cu	/^                int kernel_index = getIndex(x, y, w) + offset;$/;"	l
+kernel_index	downConvolution.cu	/^            int kernel_index = getIndex(delta_x, delta_y, mk);$/;"	l
+kernel_offset	main.cu	/^                    int kernel_offset = w * h * channel;$/;"	l
 kidx	downConvolution.cu	/^	int kidx = 0;$/;"	l
 kn	main.cu	/^    size_t kn = mk*nk;$/;"	l
-lambda	main.cu	/^     float lambda = cmd.get<float>("lambda"); lambda = (lambda <= 0) ? 0.0068 : lambda;$/;"	l
+lambda	main.cu	/^     float lambda = cmd.get<float>("lambda"); lambda = (lambda <= 0) ? 0.0068 : lambda; $/;"	l
+lambda_min	main.cu	/^     float lambda_min = 0.0006f;$/;"	l
 left	divergence.cu	/^                float left = (x > 0) ? imgIn[getIndex(x - 1, y, w) + offset] : 0.0f;  $/;"	l
 lower	epsilon.cu	/^    float lower = 0;$/;"	l
-m	test.cu	/^    size_t m = std::stoi(argv[4]); size_t n = std::stoi(argv[5]);$/;"	l
-m	testdownConv.cu	/^    size_t m = 17; $/;"	l
+m	test.cu	/^    size_t m = 5; size_t n = 5;$/;"	l
+m	testdownConv.cu	/^    size_t m = 5; $/;"	l
 mIn	main.cu	/^    cv::Mat mIn;$/;"	l
 main	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^int main(argc, argv) int argc; char *argv[];$/;"	f
 main	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^void main() {}$/;"	f
@@ -585,19 +613,21 @@ maxElemU	epsilon.cu	/^    float maxElemU = 0;$/;"	l
 maxGrad	epsilon.cu	/^    float maxGrad = 0;$/;"	l
 mk	main.cu	/^	 int mk = cmd.get<int>("mk"); mk = (mk <= 0) ? 5 : mk;$/;"	l
 n	helper.cu	/^    size_t n = (size_t)w*h*nc;$/;"	l
-n	test.cu	/^    size_t m = std::stoi(argv[4]); size_t n = std::stoi(argv[5]);$/;"	l
-n	testdownConv.cu	/^    size_t n = 11;$/;"	l
+n	test.cu	/^    size_t m = 5; size_t n = 5;$/;"	l
+n	testdownConv.cu	/^    size_t n = 5;$/;"	l
 nOmega	helper.cu	/^    size_t nOmega = (size_t)w*h;$/;"	l
 nbins	helper.cu	/^    const int nbins = 256;$/;"	l
 nc	helper.cu	/^    int nc = m.channels();$/;"	l
 nc	main.cu	/^    int nc = mIn.channels();  \/\/ number of channels$/;"	l
-nc	test.cu	/^    size_t nc = std::stoi(argv[3]);$/;"	l
+nc	test.cu	/^    size_t nc = 3;$/;"	l
 nc	testdownConv.cu	/^    size_t nc = 1;$/;"	l
 nk	main.cu	/^	 int nk = cmd.get<int>("nk"); nk = (nk <= 0) ? 5 : nk;$/;"	l
 noise	helper.cu	/^float noise(float sigma)$/;"	f
 norm1	normalise.cu	/^    float norm1 = 0.0;$/;"	l
 normaliseGlobalMemCuda	normalise.cu	/^void normaliseGlobalMemCuda(float* kernel, const int m, const int n){$/;"	f
 offset	divergence.cu	/^        int offset = w * h * channel;$/;"	l
+offset	downConvolution.cu	/^        int offset = w * h * channel;$/;"	l
+offset_pad_img	downConvolution.cu	/^        int offset_pad_img = padw * padh * channel;$/;"	l
 openCamera	helper.cu	/^bool openCamera(cv::VideoCapture &camera, int device, int w, int h)$/;"	f
 outSize	test.cu	/^    size_t outSize = outSizeX * outSizeY * nc;$/;"	l
 outSize	testdownConv.cu	/^	std::cout<< "outsize: " << outSize << "\\n"; $/;"	l
@@ -605,16 +635,19 @@ outSize	testdownConv.cu	/^    size_t outSize = outSizeX * outSizeY * nc;$/;"	l
 outSize	upConvolution.cu	/^    size_t outSize = (m+w-1) * (n+h-1) * nc;$/;"	l
 outSizeX	pad.cu	/^    int outSizeX = w + padX + padX;$/;"	l
 outSizeX	pad.cu	/^    size_t outSizeX = w+padX+padX;$/;"	l
-outSizeX	test.cu	/^    size_t outSizeX = m+w-1;  size_t outSizeY = n+h-1;$/;"	l
+outSizeX	test.cu	/^    size_t outSizeX = m + w - 1;  size_t outSizeY = n + h - 1;$/;"	l
 outSizeX	testdownConv.cu	/^    size_t outSizeX = n-w+1;  $/;"	l
 outSizeX	upConvolution.cu	/^    int outSizeX = w + padX + padX;$/;"	l
 outSizeX	upConvolution.cu	/^    size_t outSizeX = m+w-1;  size_t outSizeY = n+h-1;$/;"	l
+outSizeXdc	test.cu	/^    size_t outSizeXdc = m;    size_t outSizeYdc = n;$/;"	l
 outSizeY	pad.cu	/^    int outSizeY = h + padY + padY;$/;"	l
 outSizeY	pad.cu	/^    size_t outSizeY = h+padY+padY;$/;"	l
-outSizeY	test.cu	/^    size_t outSizeX = m+w-1;  size_t outSizeY = n+h-1;$/;"	l
+outSizeY	test.cu	/^    size_t outSizeX = m + w - 1;  size_t outSizeY = n + h - 1;$/;"	l
 outSizeY	testdownConv.cu	/^    size_t outSizeY = m-h+1;$/;"	l
 outSizeY	upConvolution.cu	/^    int outSizeY = h + padY + padY;$/;"	l
 outSizeY	upConvolution.cu	/^    size_t outSizeX = m+w-1;  size_t outSizeY = n+h-1;$/;"	l
+outSizeYdc	test.cu	/^    size_t outSizeXdc = m;    size_t outSizeYdc = n;$/;"	l
+outSizedc	test.cu	/^    size_t outSizedc = outSizeXdc * outSizeYdc * nc;$/;"	l
 out_idx	downConvolution.cu	/^	int out_idx = 0;$/;"	l
 out_idx	downConvolution.cu	/^	int out_idx, out_x, out_y = 0;$/;"	l
 out_x	downConvolution.cu	/^	int out_idx, out_x, out_y = 0;$/;"	l
@@ -640,12 +673,13 @@ prev_file	helper.cu	/^std::string prev_file = "";$/;"	v
 prev_line	helper.cu	/^int prev_line = 0;$/;"	v
 qnxnto	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^char const* qnxnto = "INFO" ":" "qnxnto[]";$/;"	v
 qnxnto	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^char const* qnxnto = "INFO" ":" "qnxnto[]";$/;"	v
+relative_x	downConvolution.cu	/^                int relative_x = x + delta_x; $/;"	l
+relative_y	downConvolution.cu	/^                int relative_y = y + delta_y; $/;"	l
 require	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^  int require = 0;$/;"	l
 require	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^  int require = 0;$/;"	l
 right	divergence.cu	/^                float right = (x < w - 1) ? imgIn[getIndex(x + 1, y, w) + offset] : 0.0f;  $/;"	l
 rotateKernel_180	adjustImage.cu	/^void rotateKernel_180(float *d_kernel_rot_180,$/;"	f
 rotateKernel_180_Kernel	adjustImage.cu	/^void rotateKernel_180_Kernel(float *kernel_rot_180,$/;"	f
-scale	main.cu	/^    float scale = 10.0;$/;"	l
 selectNonZeroGlobalMemCuda	selectNonZero.cu	/^void selectNonZeroGlobalMemCuda(float* kernel, const int m, const int n){$/;"	f
 selectNonZeroKernel	selectNonZero.cu	/^void selectNonZeroKernel(float* kernel, const int m, const int n){$/;"	f
 shift_y	main.cu	/^    size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; $/;"	l
@@ -653,6 +687,8 @@ showHistogram256	helper.cu	/^void showHistogram256(const char *windowTitle, int 
 showImage	helper.cu	/^void showImage(std::string title, const cv::Mat &mat, int x, int y)$/;"	f
 simpleTest	test.cu	/^int simpleTest(int argc, char** argv){$/;"	f
 smallnum	epsilon.cu	/^	std::cout<<"CPU.. maxU: " << maxElemU << ", maxGrad: " << maxGrad << ", smallnum: "<<smallnum<< "\\n";$/;"	l
+spc_image	main.cu	/^        float *spc_image = new float[pad_img_size];$/;"	l
+spc_kernel	main.cu	/^        float *spc_kernel = new float[img_size];$/;"	l
 subtractArrays	helper.cu	/^void subtractArrays(float *arrayOut,const float *A, const float *B, const int size)$/;"	f
 temp	adjustImage.cu	/^    cv::Mat temp =  mIn(myRectangle);$/;"	l
 temp	epsilon.cu	/^    float temp = (grad[grad_i] > 0) ? grad[grad_i] : -1.0f * grad[grad_i];$/;"	l
@@ -660,14 +696,17 @@ tempX	pad.cu	/^    int id, tempX, tempY;$/;"	l
 tempX	upConvolution.cu	/^    int id, tempX, tempY;$/;"	l
 tempY	pad.cu	/^    int id, tempX, tempY;$/;"	l
 tempY	upConvolution.cu	/^    int id, tempX, tempY;$/;"	l
+temp_storage_bytes	downConvolution.cu	/^    size_t temp_storage_bytes = 0;$/;"	l
 top	divergence.cu	/^                float top = (y < h - 1) $/;"	l
-top_right	divergence.cu	/^                float top_right = ((x < w - 1) && (y < h - 1)) $/;"	l
+top_left	divergence.cu	/^                float top_left = ((x > 0) && (y < h - 1)) $/;"	l
 totalSize	pad.cu	/^    size_t totalSize = outSizeX * outSizeY*nc;$/;"	l
+updated_kernel	main.cu	/^                std::cout << updated_kernel[getIndex(i,j,mk)] << " ";$/;"	l
+updated_kernel	main.cu	/^        float *updated_kernel = new float[kn];$/;"	l
 volatile	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	11;"	d	file:
 w	helper.cu	/^    int w = m.cols;$/;"	l
 w	main.cu	/^    int w = mIn.cols;         \/\/ width$/;"	l
-w	test.cu	/^    size_t w = std::stoi(argv[1]); size_t h = std::stoi(argv[2]);$/;"	l
-w	testdownConv.cu	/^    size_t w = 5; $/;"	l
+w	test.cu	/^    size_t w = 7; size_t h = 7;$/;"	l
+w	testdownConv.cu	/^    size_t w = 7; $/;"	l
 wTitle	helper.cu	/^    const char *wTitle = title.c_str();$/;"	l
 x	upConvolution.cu	/^    const float x = 1.0f\/(m*n);$/;"	l
 x1	helper.cu	/^    float x1 = (float)rand()\/RAND_MAX;$/;"	l
