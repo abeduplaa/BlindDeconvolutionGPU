@@ -3,6 +3,8 @@
 *.pyc
 *.log
 *.png
+*.mat
+src/octave-workspace
 src/build
 src/tags
 src/update.sh

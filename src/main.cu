@@ -9,6 +9,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <stdlib.h>
+#include <string>
 
 #include "test.cuh"
 #include "helper.cuh"
@@ -30,6 +31,62 @@
 
 #include "cublas_v2.h"
 
+void saveMatrixMatlab(const char *key_name,
+                      float *array,
+                      int dim_x,
+                      int dim_y,
+                      int dim_z) {
+
+    PyObject *pName, *pModule, *pFunc;
+    PyObject *pArgs;
+
+    // load module and function
+    pName = PyUnicode_DecodeFSDefault("scipy.io");
+    pModule = PyImport_Import(pName);
+    Py_DECREF(pName);
+
+    if (pModule == NULL) {
+        std::cout << "ERROR: cannot import scipy IO" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    // convert C-array to numpy array
+    pFunc = PyObject_GetAttrString(pModule, "savemat");
+    if (PyCallable_Check(pFunc) == 0) {
+        std::cout << "ERROR: cannot link savemat function" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    const int num_dims = 3;
+    npy_intp dims[num_dims] = {dim_x, dim_y, dim_z};
+    PyObject *numpy_array = PyArray_SimpleNewFromData(num_dims,
+                                                      dims,
+                                                      NPY_FLOAT,
+                                                      array);
+
+    // create and init a dictionary to write data to a text file
+    PyObject* dictionary = PyDict_New();
+    PyObject* key = PyUnicode_FromString(key_name); 
+    PyDict_SetItem(dictionary, key, numpy_array);
+
+    std::string file_name = std::string(key_name) + ".mat";
+    PyObject* ptr_file_name = PyUnicode_FromString(file_name.c_str()); 
+
+    // set up patameters for python function call
+    pArgs = PyTuple_New(2);
+    PyTuple_SetItem(pArgs, 0, ptr_file_name);
+    PyTuple_SetItem(pArgs, 1, dictionary);
+
+    // call python
+    PyObject *pOutput = PyObject_CallObject(pFunc, pArgs);
+    if (pOutput == NULL) {
+        std::cout << "cannot call scipy" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+}
 
 int main(int argc,char **argv) {
 
@@ -55,7 +112,7 @@ int main(int argc,char **argv) {
 
     pFunc = PyObject_GetAttrString(pModule, "convolve");
     if (PyCallable_Check(pFunc) == 0) {
-        std::cout << "ERROR: cannot link convolve2d function" << std::endl;
+        std::cout << "ERROR: cannot link convolve function" << std::endl;
         PyErr_Print();
         exit(1);
     }
@@ -302,6 +359,9 @@ int main(int argc,char **argv) {
         cudaMemcpy(scp_kernel, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(scp_image, d_imgPadRot, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
         
+        saveMatrixMatlab("kernel", scp_kernel, w, h, nc);
+        /*saveMatrixMatlab("image", scp_image, padw, padh, nc);*/
+
         int num_dim = 3;
         npy_intp image_dims[3] = {(long)padw, (long)padh, num_dim};
         numpy_image = PyArray_SimpleNewFromData(num_dim,
