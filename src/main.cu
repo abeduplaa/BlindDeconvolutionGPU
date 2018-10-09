@@ -170,6 +170,9 @@
 
 	/////////////////////////
 */
+	// FUNCTION FOR RESIZING!!!!!!!!!!!!!!
+    // cv::resize(mIn, mResize, mResize.size(), 0, 0, CV_INTER_LINEAR); 
+
 
     // initialize CUDA context
     // cudaDeviceSynchronize();
