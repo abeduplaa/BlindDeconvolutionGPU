@@ -22,6 +22,7 @@
 #include "epsilon.cuh"
 #include "selectNonZero.cuh"
 #include "normalise.cuh"
+#include <fstream>
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
@@ -30,6 +31,17 @@
 /*#include <python3.5m/numpy/arrayobject.h>*/
 
 #include "cublas_v2.h"
+
+void converToColMajor(float *array, float *input, int w, int h, int nc) {
+    for (int channels = 0; channels < nc; ++channels) {
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                array[y + x * h + w * h * channels] = input[x + y * w + w * h * channels];
+            }   
+        }
+    }
+
+}
 
 void saveMatrixMatlab(const char *key_name,
                       float *array,
@@ -59,11 +71,18 @@ void saveMatrixMatlab(const char *key_name,
         exit(1);
     }
 
-    const int num_dims = 3;
-    npy_intp dims[num_dims] = {dim_x, dim_y, dim_z};
+    /*const int num_dims = 3;*/
+    /*npy_intp dims[num_dims] = {dim_y, dim_x, dim_z};*/
+    /*PyObject *numpy_array = PyArray_SimpleNewFromData(num_dims,*/
+                                                      /*dims,*/
+                                                      /*NPY_FLOAT32,*/
+                                                      /*array);*/
+
+    const int num_dims = 1;
+    npy_intp dims[num_dims] = {dim_y * dim_x * dim_z};
     PyObject *numpy_array = PyArray_SimpleNewFromData(num_dims,
                                                       dims,
-                                                      NPY_FLOAT,
+                                                      NPY_FLOAT32,
                                                       array);
 
     // create and init a dictionary to write data to a text file
@@ -73,6 +92,20 @@ void saveMatrixMatlab(const char *key_name,
 
     std::string file_name = std::string(key_name) + ".mat";
     PyObject* ptr_file_name = PyUnicode_FromString(file_name.c_str()); 
+
+    // write to a text file
+    std::string text_file_name = std::string(key_name) + ".txt";
+    std::ofstream text_file;
+    text_file.open(text_file_name.c_str());
+    float *col_major_array = new float [dim_x * dim_y * dim_z];
+    converToColMajor(col_major_array, array, dim_x, dim_y, dim_z);
+
+    for (int i = 0 * (dim_x * dim_y); i < 3 * (dim_x * dim_y); ++i) {
+        text_file << col_major_array[i] << std::endl;
+    }
+    text_file.close();
+    delete [] col_major_array;
+
 
     // set up patameters for python function call
     pArgs = PyTuple_New(2);
@@ -359,18 +392,23 @@ int main(int argc,char **argv) {
         cudaMemcpy(scp_kernel, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(scp_image, d_imgPadRot, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
         
+        cv::Mat m_DEBUG(padh, padw, mIn.type());
+        convertLayeredToMat(m_DEBUG, scp_image);
+
+        showImage("DEBUG", m_DEBUG, 100, 140);
+        
         saveMatrixMatlab("kernel", scp_kernel, w, h, nc);
-        /*saveMatrixMatlab("image", scp_image, padw, padh, nc);*/
+        saveMatrixMatlab("image", scp_image, padw, padh, nc);
 
         int num_dim = 3;
-        npy_intp image_dims[3] = {(long)padw, (long)padh, num_dim};
+        npy_intp image_dims[3] = {(long)padh, (long)padw, num_dim};
         numpy_image = PyArray_SimpleNewFromData(num_dim,
                                                 image_dims,
                                                 NPY_FLOAT,
                                                 scp_image);
         
 
-        npy_intp kernel_dims[3] = {w, h, num_dim};
+        npy_intp kernel_dims[3] = {h, w, num_dim};
         numpy_kernel = PyArray_SimpleNewFromData(num_dim,
                                                  kernel_dims,
                                                  NPY_FLOAT,
