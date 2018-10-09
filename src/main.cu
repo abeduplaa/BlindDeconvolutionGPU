@@ -20,6 +20,7 @@
 #include "epsilon.cuh"
 #include "selectNonZero.cuh"
 #include "normalise.cuh"
+#include "buildPyramid.cuh"
 
 #include "cublas_v2.h"
 
@@ -49,6 +50,8 @@
     };
     cv::CommandLineParser cmd(argc, argv, params);
 
+
+
     // input image
     std::string inputImage = cmd.get<std::string>("image");
     // number of computation repetitions to get a better run time measurement
@@ -64,6 +67,22 @@
      int iter = cmd.get<int>("iter"); iter = ( iter <= 0 ) ? 1 : iter;
 
      std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
+
+	int pyramidSize =  0;
+	const int smallestKernel = 3;
+	const float kernelMultiplier = 1.1f;
+	const float lambdaMultiplier = 1.9f;
+	const float largestLambda = .11f;
+
+	// Calculate size of pyramd
+	// TODO: REMOVE THESE NK AND NK
+	mk = 35;
+	nk = 70;
+	pyramidSize = pyramidScale(mk,nk, smallestKernel, kernelMultiplier, lambdaMultiplier, lambda, largestLambda);
+
+	std::cout<< "Pyramid Size: " << pyramidSize << "\n";
+	
+
 
     // TODO: LOAD IMAGE
     // read input frame
@@ -99,6 +118,58 @@
     float *kernel = new float[kn * sizeof(float)];
     //  initialize kernel to uniform.
     initialiseKernel(kernel, mk, nk);
+
+
+	// Build pyramid paramters:
+	int *wP = new int[pyramidSize];
+	int *hP = new int[pyramidSize];
+	int *mP = new int[pyramidSize];
+	int *nP = new int[pyramidSize];
+	float *lambdas = new float[pyramidSize];
+
+	buildPyramid1(wP, hP, mP, nP, lambdas, w, h, mk, nk, smallestKernel, kernelMultiplier, lambdaMultiplier, lambda, pyramidSize);
+
+/*
+	///////////////////
+	// DEBUGGING:
+	std::cout<< "pyramid facts: mP:  ";
+	for(int i=0; i<pyramidSize; i++)
+	{
+		std::cout<< mP[i] << ", ";
+	}
+	std::cout<< "\n";
+
+    std::cout<< "pyramid facts: nP:  " ;
+    for(int i=0; i<pyramidSize; i++)
+    {
+        std::cout<< nP[i] << ", ";
+    }
+    std::cout<< "\n";
+
+
+    std::cout<< "pyramid facts: wP:  " ;
+    for(int i=0; i<pyramidSize; i++)
+    {
+        std::cout<< wP[i] << ", ";
+    }
+    std::cout<< "\n";
+
+
+    std::cout<< "pyramid facts: hP:  ";
+    for(int i=0; i<pyramidSize; i++)
+    {
+        std::cout<< hP[i] << ", ";
+    }
+    std::cout<< "\n";
+
+	//cv::Mat mResize(hP[],wP[4],CV_32F);
+	cv::Mat mResize(hP[4], wP[4], CV_32F);
+
+	cv::resize(mIn, mResize, mResize.size(), 0, 0, CV_INTER_LINEAR); 
+	showImage("resized image",mIn/255.0f,100,100);
+
+	/////////////////////////
+*/
 
     // initialize CUDA context
     // cudaDeviceSynchronize();
@@ -365,6 +436,7 @@
     /*}*/
     //DEBUG STARTS
     /*simpleTest(argc, argv);*/
+/*
     std::cout << "Value of epsilonU: " << epsU << std::endl;
     std::cout << "Value of epsilonK: " << epsK << std::endl;
     cudaMemcpy(kernel, d_kernel, kn*sizeof(float), cudaMemcpyDeviceToHost);
@@ -375,7 +447,7 @@
         }
         std::cout << std::endl;
     }
-    
+*/   
     /*for(int i = 0;  i < 10; ++i){*/
         /*for(int j = 0; j < 10; ++j){*/
             /*std::cout << imgDownConv0[j + i*w] << "   ";*/

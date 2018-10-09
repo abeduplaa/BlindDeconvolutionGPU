@@ -1,13 +1,22 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
-
+//#include <opencv2/core/core.hpp>
+//#include <opencv-3.3.1-dev/opencv2/core/cuda.hpp
+#include <opencv2/core/core.hpp>
+//#include </work/ros/kinetic/include/opencv-3.3.1-dev/opencv2/core/cuda.hpp>
 #include "buildPyramid.cuh"
-
+//#include <cuda.hpp>
+//#include </work/ros/kinetic/include/opencv-3.3.1-dev/opencv2/photo/cuda.hpp>
+//#include </usr/include/opencv2/core/cuda_devptrs.hpp>
+//#include </work/ros/kinetic/include/opencv-3.3.1-dev/opencv2/xfeatures2d/cuda.hpp>
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
 
 /////////////////
 
 // GPU FUNCTIONS:
+/*
 __global__ 
 void resizeCudaKernel( unsigned char* input,
     unsigned char* output,
@@ -68,9 +77,18 @@ if((outputXIndex<outputWidth) && (outputYIndex<outputHeight))
 }
 }
 
+*/
 
-void resizeGlobalMemCuda(const float *output, const float *input)
-{
+// void resizeGlobalMemCuda(const float *output, const float *input, wIn, hIn, wOut, hOut,)
+//{
+
+/*
+// Calculate how many pixels in the input image will be merged into one pixel in the output image
+	const float pixelGroupSizeY = float(input.rows) / float(output.rows);
+	const float pixelGroupSizeX = float(input.cols) / float(output.cols);
+	//cv::cuda::GpuMat image(rows, cols, float, input);
+
+///
     // allocate block and grid size
 	dim3 block(32, 8, 1);
     dim3 grid = computeGrid2D(block, w - m + 1, h - n + 1);
@@ -101,10 +119,12 @@ void resizeGlobalMemCuda(const float *output, const float *input)
 	SAFE_CALL(cudaFree(d_input),"CUDA Free Failed");
 	SAFE_CALL(cudaFree(d_output),"CUDA Free Failed");
 	//SAFE_CALL(cudaDeviceReset(),"CUDA Device Reset Failed");
-}
+
+*/
+//}
 
 
-///////
+////////////////////////////////////////
 //CPU FUNCTIONS
 
 
@@ -126,24 +146,24 @@ int kernelDim(int in, const float scaleMultiplier, const int smallestScale)
 }
 
 int imageDim(int in, const float factor)
-{
-    int out = round( (float)in / factor );
+{	
+	//float in1 = (float) in;
+    int out = round( in / factor );
 
     // check if dimension is even
     out = (out%2 == 0) ? (out-1) : out;
-
     return out;
 
 }
 
-int pyramidScale(const int m, const int n, const float smallestScale, 
-    const float scaleMultiplier, const float lambdaMultiplier)
+int pyramidScale(const int m, const int n, const int smallestScale, 
+    const float scaleMultiplier, const float lambdaMultiplier, const float finalLambda, const float largestLambda)
 {
     //dummy vars:
     int m1 = m;
     int n1 = n;
-    int l1 = 0;
-    int pyramidSize = 0;
+    int l1 = finalLambda;
+    int pyramidSize = 1;
 
     while( (m1 > smallestScale) && (n1 > smallestScale) 
     && (l1 * lambdaMultiplier < largestLambda) )
@@ -160,13 +180,13 @@ int pyramidScale(const int m, const int n, const float smallestScale,
     return pyramidSize;
 }
 
-void buildPyramid(int *wP, int *hP, int *mP, int *nP, float *lambdas, 
+void buildPyramid1(int *wP, int *hP, int *mP, int *nP, float *lambdas, 
     const int w, const int h, const int m, const int n, 
-    const int smallestScale, const float lambda, const float finalLambda, 
-    const float scaleMultiplier, const float lambdaMultiplier, const int pyramidSize)
+    const int smallestScale, const float scaleMultiplier, 
+	const float lambdaMultiplier, const float lambda, const int pyramidSize)
 {
-    float factorW = 0;
-    float factorH = 0;
+    float factorW = 0.f;
+    float factorH = 0.f;
 
     wP[0] = w;
     hP[0] = h;
@@ -174,8 +194,6 @@ void buildPyramid(int *wP, int *hP, int *mP, int *nP, float *lambdas,
     nP[0] = n;
     lambdas[0] = lambda;
     
-    // while( (mP.back() > smallestScale) && (np.back() > smallestScale) 
-    // &&  (lambdas.back() * lambdaMultiplier < largestLambda) )
     
     for(int i = 1 ; i < pyramidSize ; i++)
     {
@@ -184,13 +202,18 @@ void buildPyramid(int *wP, int *hP, int *mP, int *nP, float *lambdas,
         mP[i] = kernelDim(mP[i - 1], scaleMultiplier, smallestScale);
         nP[i] = kernelDim(nP[i - 1], scaleMultiplier, smallestScale);
         
-        factorW = mP[i - 1] / mP[i];
-        factorH = nP[i - 1] / nP[i];
+        factorW = mP[i - 1]*1.0 / mP[i];
+        factorH = nP[i - 1]*1.0 / nP[i];
 
         wP[i] = imageDim(wP[i-1] , factorW);
         hP[i] = imageDim(hP[i-1] , factorH);
     }
 }
+
+
+
+
+
 
 
 
