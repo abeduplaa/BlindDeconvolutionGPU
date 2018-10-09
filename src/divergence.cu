@@ -25,18 +25,18 @@ void computeGradientsKernel(float *dx_fw, float *dy_fw,
             for (int y = idy; y < h; y += blockDim.y * gridDim.y) {
                 float center = imgIn[getIndex(x, y, w) + offset];
 
-                float right = (x < w - 1) ? imgIn[getIndex(x + 1, y, w) + offset] : 0.0f;  
-                float left = (x > 0) ? imgIn[getIndex(x - 1, y, w) + offset] : 0.0f;  
+                float right = (x < w - 1) ? imgIn[getIndex(x + 1, y, w) + offset] : center;  
+                float left = (x > 0) ? imgIn[getIndex(x - 1, y, w) + offset] : center;  
 
                 float top = (y < h - 1) 
-                          ? imgIn[getIndex(x, y + 1, w) + offset] : 0.0f;  
+                          ? imgIn[getIndex(x, y + 1, w) + offset] : center;  
                 float down = (y > 0) 
-                           ? imgIn[getIndex(x, y - 1, w) + offset] : 0.0f;  
+                           ? imgIn[getIndex(x, y - 1, w) + offset] : center;  
                 float top_left = ((x > 0) && (y < h - 1)) 
-                                   ? imgIn[getIndex(x - 1, y + 1, w) + offset] : 0.0f;
+                                   ? imgIn[getIndex(x - 1, y + 1, w) + offset] : left;
 
                 float down_right = ((x < w - 1) && (y > 0)) 
-                                    ? imgIn[getIndex(x + 1, y - 1, w) + offset] : 0.0f;
+                                    ? imgIn[getIndex(x + 1, y - 1, w) + offset] : down;
                 /*float top_right = ((x < w - 1) && (y < h - 1)) */
                                /*? imgIn[getIndex(x + 1, y + 1, w) + offset] : 0.0f;*/
 
@@ -61,6 +61,7 @@ void computeGradientsKernel(float *dx_fw, float *dy_fw,
 __device__
 float computeDuffusivity(const float a, const float b, const float eps) {
     return max(eps, sqrtf(a * a + b * b)); 
+    /*return 1.0f;*/
 }
 
 

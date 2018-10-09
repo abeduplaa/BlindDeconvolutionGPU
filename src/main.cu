@@ -4,6 +4,7 @@
 // ########################################################################
 
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -62,6 +63,7 @@
      float lambda_min = 0.0006f;
      float eps = cmd.get<float>("eps"); eps = ( eps <= 0 ) ? 1e-3 : eps;
      int iter = cmd.get<int>("iter"); iter = ( iter <= 0 ) ? 1 : iter;
+
 
      std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
 
@@ -145,6 +147,9 @@
 
     float *d_imgDownConv0 = NULL;
     float *d_imgDownConv1 = NULL;
+
+    float *d_imgDownConv1Rot = NULL;
+
     float *d_imgUpConv = NULL;
 
     float *d_div = NULL;
@@ -178,6 +183,9 @@
 
     cudaMalloc(&d_imgDownConv0, img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_imgDownConv1, img_size * sizeof(float)); CUDA_CHECK;
+
+    cudaMalloc(&d_imgDownConv1Rot, img_size * sizeof(float)); CUDA_CHECK;
+
     cudaMalloc(&d_imgUpConv, pad_img_size * sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_epsU, sizeof(float)); CUDA_CHECK;
     cudaMalloc(&d_epsK, sizeof(float)); CUDA_CHECK;
@@ -191,24 +199,31 @@
 
     for(int iterations = 0; iterations < iter; ++iterations){
         std::cout << "Iteration num:  " << iterations << std::endl;
+
+        // TODO: compute(mirror, rotate) kernel
+        rotateKernel_180(d_kernel_temp, d_kernel, mk, nk); 
+        cudaThreadSynchronize();
+
         computeDownConvolutionGlobalMemCuda(d_imgDownConv0, 
                                             d_imgInPad, 
-                                            d_kernel, 
+                                            d_kernel_temp, 
                                             padw, 
                                             padh, 
                                             nc, 
-                                        mk, nk);
-
+                                            mk, 
+                                            nk);
+        cudaThreadSynchronize();
+        /*if(iterations == 1)*/
+            /*break;*/
         // DONE: cublas subtract k(+)*u - f. Move that to a separate function
         alpha = -1.0f;
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
         cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
-        
-        // TODO: compute(mirror, rotate) kernel
-        rotateKernel_180(d_kernel_temp, d_kernel, mk, nk); 
+        cudaThreadSynchronize();
 
         // TODO: check the list of  parameters 
-        computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel_temp, w, h, nc, mk, nk);
+        computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel, w, h, nc, mk, nk);
+        cudaThreadSynchronize();
 
         // compute gradient and divergence
         computeDiffOperatorsCuda(d_div, 
@@ -216,50 +231,68 @@
                                  d_dx_bw, d_dy_bw,
                                  d_dx_mixed, d_dy_mixed, 
                                  d_imgInPad, padw, padh, nc, 1.0f, eps);
-        /*cudaThreadSynchronize();*/
+        cudaThreadSynchronize();
+        
 
         // TODO: subtract the divergence from upconvolution result (RAVIL)
         alpha = -1.0f * lambda;
+
         cublasSaxpy(handle, pad_img_size, &alpha, d_div, 1, d_imgUpConv, 1); CUDA_CHECK;
         // TODO: compute epsilon on GPU
         computeEpsilonGlobalMemCuda(d_epsU, handle, d_imgInPad, d_imgUpConv, pad_img_size, 5e-3);
+        cudaThreadSynchronize();
+        
 
         // TODO: update output image u = u - eps*grad
             // USE CUBLAS AXPY() FUNCTION HERE
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
         cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPad, 1);
+        cudaThreadSynchronize();
 
 
         //convoluton of k^y*y^{t+1}
         computeDownConvolutionGlobalMemCuda(d_imgDownConv1, 
                                             d_imgInPad, 
-                                            d_kernel, 
+                                            d_kernel_temp, 
                                             padw, 
                                             padh, 
                                             nc, 
                                             mk, nk);
+        cudaThreadSynchronize();
 
         //Substraction with f
         alpha = -1.0f;
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
         cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv1, 1); CUDA_CHECK;
-
+        cudaThreadSynchronize();
 
         // flip image
         // Ravi has checked that rotation is correct
         for(int c = 0; c < nc; ++c){
             rotateKernel_180(&d_imgPadRot[c*padw*padh], &d_imgInPad[c*padw*padh], 
                     padw, padh); 
+            rotateKernel_180(&d_imgDownConv1Rot[c*w*h], &d_imgDownConv1[c*w*h], w, h);
+            cudaThreadSynchronize();
         }
 
         // TODO: perform convolution: k = u * u_pad
+        // computeDownConvolutionGlobalMemCuda1(d_kernel_temp, 
+        //                                    d_imgPadRot, 
+        //                                    d_imgDownConv1Rot, 
+        //                                    padw, 
+        //                                    padh, 
+        //                                    nc, 
+        //                                    w, h);
+
         computeImageConvolution(d_kernel_temp, mk, nk ,
-                                d_imgDownConv1, d_imgInBuffer, 
+                                d_imgDownConv1Rot, d_imgInBuffer, 
                                 w, h, 
                                 d_imgPadRot, padw, padh, 
                                 nc); 
+        cudaThreadSynchronize();
         
         computeEpsilonGlobalMemCuda(d_epsK, handle, d_kernel, d_kernel_temp, kn, 1e-3);
+        cudaThreadSynchronize();
         /*cudaMemcpy(kernel, d_kernel_temp, kn*sizeof(float), cudaMemcpyDeviceToHost);*/
 
         /*std::cout << "Grad k" << std::endl;*/
@@ -273,6 +306,7 @@
         //update kernel
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
         cublasSaxpy(handle, kn, d_epsK, d_kernel_temp, 1, d_kernel, 1);
+        cudaThreadSynchronize();
 
         /*cudaMemcpy(kernel, d_kernel, kn*sizeof(float), cudaMemcpyDeviceToHost);*/
 
@@ -286,9 +320,11 @@
 
         //select non zero kernel
         selectNonZeroGlobalMemCuda(d_kernel, mk, nk);
+        cudaThreadSynchronize();
 
         //normalise kernel
         normaliseGlobalMemCuda(d_kernel, mk, nk);
+        cudaThreadSynchronize();
 
         //update lambda
         lambda = 0.99f * lambda;
@@ -301,6 +337,7 @@
 	// init raw input image array (and convert to layered)
 
 	// TODO:  IMPLEMENT THESE FUNCTIONS
+
 	// 1. pre-process: pad image
 	
 
@@ -336,10 +373,10 @@
     cudaMemcpy(dx_mixed, d_dx_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
 
-    cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
 
-    cudaMemcpy(imgDownConv0, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(imgDownConv0, d_imgDownConv0, img_size * sizeof(float), cudaMemcpyDeviceToHost);
     CUDA_CHECK;
     
     cudaMemcpy(kernel, d_kernel, kn * sizeof(float), cudaMemcpyDeviceToHost);
@@ -367,21 +404,21 @@
     /*simpleTest(argc, argv);*/
     std::cout << "Value of epsilonU: " << epsU << std::endl;
     std::cout << "Value of epsilonK: " << epsK << std::endl;
-    cudaMemcpy(kernel, d_kernel, kn*sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout << "Value of lambda at the end: " << lambda << std::endl;
 
     for(int i = 0;  i < nk; ++i){
         for(int j = 0; j < mk; ++j){
-            std::cout << kernel[j + i*mk] << "   ";
+            std::cout << std::setprecision(7) << kernel[j + i*mk] << "   ";
         }
         std::cout << std::endl;
     }
-    
-    /*for(int i = 0;  i < 10; ++i){*/
-        /*for(int j = 0; j < 10; ++j){*/
-            /*std::cout << imgDownConv0[j + i*w] << "   ";*/
-        /*}*/
-        /*std::cout << std::endl;*/
-    /*}*/
+    std::cout << "YOLO" << std::endl; 
+    for(int i = 0;  i < 5; ++i){
+        for(int j = 0; j < 5; ++j){
+            std::cout << std::setprecision(7) << imgDownConv0[j +  i*w] << "   ";
+        }
+        std::cout << std::endl;
+    }
 
     //DEBUG ENDS
     
@@ -449,6 +486,7 @@
 
     cudaFree(d_imgDownConv0); CUDA_CHECK;
     cudaFree(d_imgDownConv1); CUDA_CHECK;
+    cudaFree(d_imgDownConv1Rot); CUDA_CHECK;
     cudaFree(d_imgUpConv); CUDA_CHECK;
     cudaFree(d_epsU); CUDA_CHECK;
     cudaFree(d_epsK); CUDA_CHECK;

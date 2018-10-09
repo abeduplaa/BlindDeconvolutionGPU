@@ -5,6 +5,10 @@ void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *k
                                int n, int m, int nc, int w, int h);
 
 
+void computeDownConvolutionGlobalMemCuda1(float *imgOut, const float *imgIn, const float *kernel, 
+                                         const int n, const int m, const int nc, 
+                                         const int w, const int h);
+
 void computeDownConvolutionGlobalMemCuda(float *imgOut, const float *imgIn, const float *kernel, 
                                          const int n, const int m, const int nc, 
                                          const int w, const int h);
