@@ -21,9 +21,11 @@ void normaliseGlobalMemCuda(float* kernel, const int m, const int n){
     dim3 grid = computeGrid2D(block, m, n);
     
     float norm1 = 0.0;
+    //TODO: pass handle as parameter
     cublasHandle_t handle;
     cublasCreate(&handle);
     cublasSasum(handle, m*n, kernel, 1, &norm1);
+    cublasDestroy(handle);
     //calling cuda kernel
     divideByNormKernel <<<grid,block>>> (kernel, m, n, norm1);
 }

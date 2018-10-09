@@ -13,7 +13,7 @@ void computeEpsilonGlobalMemKernel(float *eps, const float *a, const int a_i, co
 {
     /**eps = 0.5f;*/
     float temp = (grad[grad_i] > 0) ? grad[grad_i] : -1.0f * grad[grad_i];
-    *eps = (smallnum * a[a_i]) * ( ( temp < 1e31) ? (1.0/temp) : (1e-31) );
+    *eps = -1.0f * (smallnum * a[a_i]) * ( ( temp < 1e31) ? (1.0/temp) : (1e-31) );
 }
 
 
@@ -36,7 +36,6 @@ void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float 
     CUDA_CHECK;
 
 	// subtract one due to BLAS starting at 1
-    std::cout<< " a and grad"<<a_i<<"   "<<grad_i<<std::endl;
 	a_i -= 1;
     grad_i -= 1;
     
