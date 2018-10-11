@@ -4,8 +4,10 @@
 #include <cuda_runtime.h>
 #include "helper.cuh"
 
+
+
 __global__
-void padImgGlobalMemKernel(float* imgOut, const float* imgIn,
+void padImgSymmetricGlobalMemKernel(float* imgOut, const float* imgIn,
         int w, int h, int nc, int padX, int padY){
     int idx = threadIdx.x + blockIdx.x*blockDim.x;
     int idy = threadIdx.y + blockIdx.y*blockDim.y;
@@ -22,10 +24,97 @@ void padImgGlobalMemKernel(float* imgOut, const float* imgIn,
                 imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
             }
             else{
-		tempX = (tempX < 0) ? 0 : w - 1;
-		tempY = (tempY < 0) ? 0 : h - 1;
+				tempX = (tempX >= 0 && tempX < w) ? tempX : (tempX < 0) ? (-1*tempX) - 1 : 2*w - tempX - 1;
+                tempY = (tempY >= 0 && tempY < h) ? tempY : (tempY < 0) ? (-1*tempY) - 1 : 2*h - tempY - 1;
+
+				imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
+			}
+        }
+    }
+}
+__global__
+void padImgPeriodicGlobalMemKernel(float* imgOut, const float* imgIn,
+        int w, int h, int nc, int padX, int padY){
+    int idx = threadIdx.x + blockIdx.x*blockDim.x;
+    int idy = threadIdx.y + blockIdx.y*blockDim.y;
+    int id, tempX, tempY;
+    int outSizeX = w + padX + padX;
+    int outSizeY = h + padY + padY;
+
+    for(int c = 0; c < nc; ++c){
+        id = idx + (idy*outSizeX) + (c*outSizeX*outSizeY);
+        if(idx < outSizeX && idy < outSizeY){
+            tempX = idx - padX;
+            tempY = idy - padY;
+            if(tempX >= 0 && tempX < w && tempY >= 0 && tempY < h){
                 imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
-                //imgOut[id] = 0.0f;
+            }
+            else{
+                if (tempX >= w){
+                    tempX = tempX - w - 1;
+                }
+                else{
+                    tempX = w + tempX + 1;
+                }
+                if (tempY >= h){
+                    tempY = tempY - h - 1;
+                }
+                else{
+                    tempY = h + tempY - 1;
+                }
+                
+				tempX = (tempX >= 0 && tempX < w) ? tempX : (tempX < 0) ? w + tempX + 1 : tempX - w - 1;
+                tempY = (tempY >= 0 && tempY < h) ? tempY : (tempY < 0) ? h + tempY - 1 : tempY - h - 1;
+                imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
+            }
+        }
+    }
+}
+__global__
+void padImg0GlobalMemKernel(float* imgOut, const float* imgIn,
+        int w, int h, int nc, int padX, int padY){
+    int idx = threadIdx.x + blockIdx.x*blockDim.x;
+    int idy = threadIdx.y + blockIdx.y*blockDim.y;
+    int id, tempX, tempY;
+    int outSizeX = w + padX + padX;
+    int outSizeY = h + padY + padY;
+
+    for(int c = 0; c < nc; ++c){
+        id = idx + (idy*outSizeX) + (c*outSizeX*outSizeY);
+        if(idx < outSizeX && idy < outSizeY){
+            tempX = idx - padX;
+            tempY = idy - padY;
+            if(tempX >= 0 && tempX < w && tempY >= 0 && tempY < h){
+                imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
+            }
+            else{
+                imgOut[id] = 0.0f;
+            }
+        }
+    }
+}
+
+__global__
+void padImgReplicateGlobalMemKernel(float* imgOut, const float* imgIn,
+        int w, int h, int nc, int padX, int padY){
+    int idx = threadIdx.x + blockIdx.x*blockDim.x;
+    int idy = threadIdx.y + blockIdx.y*blockDim.y;
+    int id, tempX, tempY;
+    int outSizeX = w + padX + padX;
+    int outSizeY = h + padY + padY;
+
+    for(int c = 0; c < nc; ++c){
+        id = idx + (idy*outSizeX) + (c*outSizeX*outSizeY);
+        if(idx < outSizeX && idy < outSizeY){
+            tempX = idx - padX;
+            tempY = idy - padY;
+            if(tempX >= 0 && tempX < w && tempY >= 0 && tempY < h){
+                imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
+            }
+            else{
+				tempX = (tempX >= 0 && tempX < w) ? tempX : (tempX < 0) ? 0 : w - 1;
+				tempY = (tempY >= 0 && tempY < h) ? tempY : (tempY < 0) ? 0 : h - 1;
+                imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
             }
         }
     }
@@ -52,7 +141,7 @@ void padImgCPU(float* imgOut, const float* imgIn,
 }
 
 void padImgGlobalMemCuda(float *imgOut, const float *imgIn,
-                         int w, int h, int nc, int m, int n){
+                         int w, int h, int nc, int m, int n, int padType){
     if(!imgIn){
         std::cout<< " input not allocated"<<std::endl;
         return;
@@ -75,5 +164,21 @@ void padImgGlobalMemCuda(float *imgOut, const float *imgIn,
     dim3 grid = computeGrid2D(block, w + m - 1, h + n - 1);
 
     //calling cuda kernel
-    padImgGlobalMemKernel <<<grid,block>>> (imgOut, imgIn, w, h, nc, padX, padY);
+	
+	if(padType == 0)
+	{
+		padImg0GlobalMemKernel <<<grid,block>>> (imgOut, imgIn, w, h, nc, padX, padY);
+	}
+	if(padType == 1)
+	{
+		padImgReplicateGlobalMemKernel <<<grid,block>>> (imgOut, imgIn, w, h, nc, padX, padY);
+	}
+	if(padType == 2)
+	{
+		padImgPeriodicGlobalMemKernel <<<grid,block>>> (imgOut, imgIn, w, h, nc, padX, padY);
+	}
+	if (padType == 3)
+	{		
+		padImgSymmetricGlobalMemKernel <<<grid,block>>> (imgOut, imgIn, w, h, nc, padX, padY);
+	}  
 }
