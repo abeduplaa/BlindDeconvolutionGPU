@@ -2,7 +2,7 @@ function [u, k] = coarseToFine(f, MK, NK, blind_params, params)
 % Author: Daniele Perrone, perrone@iam.unibe.ch
 % Copyright (C) 2014 Daniele Perrone.  All rights reserved.
 
-u = padarray(f,[floor(MK/2) floor(NK/2)],'replicate');
+u = padarray(f,[floor(MK/2) floor(NK/2)],0);
 k = ones(MK,NK)/MK/NK;
 
 [fp, Mp, Np, MKp, NKp, lambdas, scales] = buildPyramid(f, MK, NK,...

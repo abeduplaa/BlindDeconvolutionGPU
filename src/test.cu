@@ -6,8 +6,8 @@ int simpleTest(int argc, char** argv){
         //return -1;
     //}
     size_t nc = 3;
-    size_t w = 7; size_t h = 7;
-    size_t m = 5; size_t n = 5;
+    size_t w = 5; size_t h = 5;
+    size_t m = 3; size_t n = 3;
     //size_t w = std::stoi(argv[1]); size_t h = std::stoi(argv[2]);
     //size_t m = std::stoi(argv[4]); size_t n = std::stoi(argv[5]);
     size_t outSizeX = m + w - 1;  size_t outSizeY = n + h - 1;
@@ -25,6 +25,9 @@ int simpleTest(int argc, char** argv){
         imgIn[i] = 1.0f;
     for(int i=0; i<m*n; ++i)
         kernel[i] = 1.0f;
+
+    imgIn[0] = 2;
+    kernel[0] = 2;
 
     //CPU commands
     /*padImgCPU(imgOut, imgIn, w, h, nc, m, n);*/
@@ -48,11 +51,11 @@ int simpleTest(int argc, char** argv){
     cudaMemcpy(d_kernel, kernel, m*n*sizeof(float), cudaMemcpyHostToDevice);
     padImgGlobalMemCuda(d_imgOut, d_imgIn, w, h, nc, m, n);
     computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgIn, d_kernel, w, h, nc, m, n);
-    computeImageConvolution(d_imgDownConv, m, n,
-                            d_imgIn, d_imgInBuffer, 
-                            w, h, 
-                            d_imgOut, outSizeX, outSizeY, 
-                            nc); 
+    /*computeImageConvolution(d_imgDownConv, m, n,*/
+                            /*d_imgIn, d_imgInBuffer, */
+                            /*w, h, */
+                            /*d_imgOut, outSizeX, outSizeY, */
+                            /*nc); */
     cudaMemcpy(imgOut, d_imgOut, outSize*sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(imgUpConv, d_imgUpConv, outSize*sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(imgOutDownConv, d_imgDownConv, outSizedc*sizeof(float), cudaMemcpyDeviceToHost);
@@ -69,16 +72,16 @@ int simpleTest(int argc, char** argv){
         }
     }
 
-    std::cout<<"Output Image after padding"<<std::endl;
-    for(int c=0; c<nc; ++c){
-        std::cout<<"Channel no :  "<<c<<std::endl;
-        for(int j=0; j<outSizeY; ++j){
-            for(int i=0; i<outSizeX; ++i){
-                std::cout<<imgOut[i + (j*outSizeX) + (c*outSizeX*outSizeY)]<<"   ";
-            }
-            std::cout<<std::endl;
-        }
-    }
+    /*std::cout<<"Output Image after padding"<<std::endl;*/
+    /*for(int c=0; c<nc; ++c){*/
+        /*std::cout<<"Channel no :  "<<c<<std::endl;*/
+        /*for(int j=0; j<outSizeY; ++j){*/
+            /*for(int i=0; i<outSizeX; ++i){*/
+                /*std::cout<<imgOut[i + (j*outSizeX) + (c*outSizeX*outSizeY)]<<"   ";*/
+            /*}*/
+            /*std::cout<<std::endl;*/
+        /*}*/
+    /*}*/
 
     std::cout<<"After Up convolution"<<std::endl;
     for(int c=0; c<nc; ++c){
@@ -91,24 +94,24 @@ int simpleTest(int argc, char** argv){
         }
     }
 
-    std::cout << "After Ravil's Down Conv" << std::endl;
-    for(int j=0; j<n; ++j){
-        for(int i=0; i<m; ++i){
-            std::cout<<imgOutDownConv[i + (j*m)]<<"   ";
-        }
-        std::cout<<std::endl;
-    }
+    /*std::cout << "After Ravil's Down Conv" << std::endl;*/
+    /*for(int j=0; j<n; ++j){*/
+        /*for(int i=0; i<m; ++i){*/
+            /*std::cout<<imgOutDownConv[i + (j*m)]<<"   ";*/
+        /*}*/
+        /*std::cout<<std::endl;*/
+    /*}*/
 
-    std::cout<<"Buffer"<<std::endl;
-    for(int c=0; c<nc; ++c){
-        std::cout<<"Channel no :  "<<c<<std::endl;
-        for(int j=0; j<h; ++j){
-            for(int i=0; i<w; ++i){
-                std::cout<<imgBuffer[i + (j*w) + (c*w*h)]<<"   ";
-            }
-            std::cout<<std::endl;
-        }
-    }
+    /*std::cout<<"Buffer"<<std::endl;*/
+    /*for(int c=0; c<nc; ++c){*/
+        /*std::cout<<"Channel no :  "<<c<<std::endl;*/
+        /*for(int j=0; j<h; ++j){*/
+            /*for(int i=0; i<w; ++i){*/
+                /*std::cout<<imgBuffer[i + (j*w) + (c*w*h)]<<"   ";*/
+            /*}*/
+            /*std::cout<<std::endl;*/
+        /*}*/
+    /*}*/
     //Free Cuda Memory
     cudaFree(d_imgIn);
     cudaFree(d_imgOut);

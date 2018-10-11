@@ -6,7 +6,7 @@
 #include "../cub-1.8.0/cub/cub.cuh"
 
 __global__
-void computeDownConvolutionGlobalMemKernel(float* imgOut, const float* imgIn,
+void computeDownConvolutionGlobalMemKernel1(float* imgOut, const float* imgIn,
 const float* kernel, const int w, const int h, const int nc, const int m, const int n){
 	
 	//0. define idxx and idyy in 2d grid
@@ -30,9 +30,51 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
 	//if(idx < imgOut_w && idy < imgOut_h) //why is this incorrect?
 	if(idx < imgOut_w && idy < imgOut_h )
 	{
+        imgOut[i] = 0.0f;
 		for(int c = 0; c < nc; c++)
 		{
             out_idx = i + (c*imgOut_h*imgOut_w);
+            out_x = idx + kRadius_m;
+            out_y = idy + kRadius_n;
+			
+            for(int kj = -kRadius_n; kj <= kRadius_n; kj++)
+            {
+                for(int ki = -kRadius_m; ki <= kRadius_m; ki++)
+                {
+                    imgOut[i] += kernel[(ki+kRadius_m+c*m*n)+((kj+kRadius_n)*kRadius_m)]
+                        * imgIn[(out_x+ki)+ (out_y+kj)*w + (c*w*h)];
+                }
+            }
+		}
+	}
+}
+
+__global__
+void computeDownConvolutionGlobalMemKernel(float* imgOut, const float* imgIn,
+const float* kernel, const int w, const int h, const int nc, const int m, const int n){
+	
+	//0. define idxx and idyy in 2d grid
+	int idx = threadIdx.x + blockIdx.x*blockDim.x;
+	int idy = threadIdx.y + blockIdx.y*blockDim.y;
+	
+	//1. define necessary variables
+	size_t imgOut_w = w - m + 1;
+	size_t imgOut_h = h - n + 1;
+	int kRadius_m = (m - 1) / 2;
+	int kRadius_n = (n - 1) / 2;
+
+	// GPU Parameters
+	int i = idx + idy * imgOut_w;
+	int out_idx = 0, out_x = 0, out_y = 0;
+
+	//2. compute downconvolution
+
+	//if(idx < imgOut_w && idy < imgOut_h) //why is this incorrect?
+	if(idx < imgOut_w && idy < imgOut_h )
+	{
+		for(int c = 0; c < nc; c++)
+		{
+            out_idx = i + (c * imgOut_h * imgOut_w);
             out_x = idx + kRadius_m;
             out_y = idy + kRadius_n;
             imgOut[out_idx] = 0.0f;
@@ -41,8 +83,8 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
             {
                 for(int ki = -kRadius_m; ki <= kRadius_m; ki++)
                 {
-                    imgOut[out_idx] += kernel[(ki+kRadius_m)+((kj+kRadius_n)*kRadius_m)]
-                        * imgIn[(out_x+ki)+ (out_y+kj)*w + (c*w*h)];
+                    imgOut[out_idx] += kernel[(ki + kRadius_m) + (kj + kRadius_n) * kRadius_m]
+                        * imgIn[(out_x + ki) + (out_y + kj) * w + (c * w * h)];
                 }
             }
 		}
@@ -98,6 +140,18 @@ void computeDownConvolutionCPU(float *imgOut, const float *imgIn, const float *k
 	}
 }
 
+void computeDownConvolutionGlobalMemCuda1(float *imgOut, const float *imgIn, const float *kernel,
+        const int w, const int h, const int nc, const int m, const int n)
+{
+
+	// allocate block and grid size
+	dim3 block(32, 8, 1);
+	dim3 grid = computeGrid2D(block, w - m + 1, h - n + 1);
+
+	//calling cuda kernel
+	computeDownConvolutionGlobalMemKernel1 <<<grid,block>>> (imgOut, imgIn, kernel,
+											w, h, nc, m, n);
+}
 void computeDownConvolutionGlobalMemCuda(float *imgOut, const float *imgIn, const float *kernel,
         const int w, const int h, const int nc, const int m, const int n)
 {
@@ -124,26 +178,26 @@ void computeImageConvolution(float *imgInBuffer,
 
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     int idy = threadIdx.y + blockIdx.y * blockDim.y;
+    int kernel_offset, offset_pad_img, relative_x, relative_y,
+        kernel_index, image_index, buffer_index, buffer_offset = 0;
 
-    for (int channel = 0; channel < nc; ++channel) {
+    if(idx < w && idy < h){
+        for (int channel = 0; channel < nc; ++channel) {
 
-        int offset = w * h * channel;
-        int offset_pad_img = padw * padh * channel;
+            kernel_offset = w * h * channel;
+            buffer_offset = w * h * channel;
+            offset_pad_img = padw * padh * channel;
 
-        for (int y = idy; y < h; y += blockDim.y * gridDim.y) {
-            for (int x = idx; x < w; x += blockDim.x * gridDim.x) {
 
-                int relative_x = x + delta_x; 
-                int relative_y = y + delta_y; 
-                
-                int kernel_index = getIndex(x, y, w) + offset;
-                int image_index = getIndex(relative_x, relative_y, padw) + offset_pad_img;
-
-                imgInBuffer[kernel_index] = imgIn[kernel_index] * imgInPad[image_index];
-            }
+            relative_x = idx + delta_x; 
+            relative_y = idy + delta_y; 
+            
+            kernel_index = getIndex(idx, idy, w) + kernel_offset;
+            buffer_index = getIndex(idx, idy, w) + buffer_offset;
+            image_index = getIndex(relative_x, relative_y, padw) + offset_pad_img;
+            imgInBuffer[buffer_index] = imgIn[kernel_index] * imgInPad[image_index];
         }
     }
-
 }
 
 
