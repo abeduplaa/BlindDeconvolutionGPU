@@ -2,10 +2,10 @@
 
 __global__
 void divideByNormKernel(float* kernel, const int m,
-        const int n, const float norm1){
-    int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    int idy = threadIdx.y + blockDim.y*blockIdx.y;
-    int id = idx + idy*m;
+                        const int n, const float norm1){
+    int idx = threadIdx.x + blockDim.x * blockIdx.x;
+    int idy = threadIdx.y + blockDim.y * blockIdx.y;
+    int id = idx + idy * m;
     if(idx < m && idy < n){
         kernel[id] /= norm1;
     }
@@ -21,10 +21,11 @@ void normaliseGlobalMemCuda(float* kernel, const int m, const int n){
     dim3 grid = computeGrid2D(block, m, n);
     
     float norm1 = 0.0;
-    //TODO: pass handle as parameter
+
     cublasHandle_t handle;
     cublasCreate(&handle);
-    cublasSasum(handle, m*n, kernel, 1, &norm1);
+    cublasSasum(handle, m * n, kernel, 1, &norm1);
+
     cublasDestroy(handle);
     //calling cuda kernel
     divideByNormKernel <<<grid,block>>> (kernel, m, n, norm1);

@@ -2,11 +2,11 @@
 
 __global__
 void selectNonZeroKernel(float* kernel, const int m, const int n){
-    int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    int idy = threadIdx.y + blockDim.y*blockIdx.y;
-    int id = idx + idy*m;
+    int idx = threadIdx.x + blockDim.x * blockIdx.x;
+    int idy = threadIdx.y + blockDim.y * blockIdx.y;
+    int id = idx + idy * m;
     if(idx < m && idy < n){
-        kernel[id] = (kernel[id] > 0)?kernel[id]:0.0f;
+        kernel[id] = (kernel[id] > 0.0f) ? kernel[id] : 0.0f;
     }
 }
 

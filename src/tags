@@ -358,6 +358,8 @@ addNoise	helper.cu	/^void addNoise(cv::Mat &m, float sigma)$/;"	f
 adjustImageSizeToOdd	adjustImage.cu	/^void adjustImageSizeToOdd(cv::Mat& mIn, int& w, int& h, int& nc){$/;"	f
 alpha	main.cu	/^    float alpha = -1.0f;$/;"	l
 alpha	testdownConv.cu	/^	const float alpha = -1.0f;$/;"	l
+array	show.py	/^array = []$/;"	v
+c	show.py	/^c = 3$/;"	v
 canvas	helper.cu	/^    cv::Mat canvas = cv::Mat::ones(125, 512, CV_8UC3);$/;"	l
 center	divergence.cu	/^                float center = imgIn[getIndex(x, y, w) + offset];$/;"	l
 computeAbsArray	epsilon.cu	/^void computeAbsArray(float *absarray, const float *array, size_t size)$/;"	f
@@ -436,12 +438,14 @@ endl	helper.cu	/^                      << prev_file << ", line " << prev_line <<
 endl	helper.cu	/^                  << ": " << cudaGetErrorString(e) << " (" << e << ")" << std::endl;$/;"	m	class:std	file:
 endl	helper.cu	/^        std::cerr << "arrays not allocated!" << std::endl;$/;"	m	class:std	file:
 endl	helper.cu	/^        std::cerr << "histogram not allocated!" << std::endl;$/;"	m	class:std	file:
-endl	main.cu	/^            std::cout << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^            std::cout << "cannot call scipy" << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^        std::cerr << "ERROR: Could not retrieve frame " << inputImage << std::endl;$/;"	m	class:std	file:
-endl	main.cu	/^        std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^        std::cout << "ERROR: cannot import the users script" << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^        std::cout << "ERROR: cannot link the users function" << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^        std::cout << "Iteration num:  " << iterations << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^        std::cout << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^     std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;$/;"	m	class:std	file:
+endl	main.cu	/^    std::cout << "----------------------" << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^    std::cout << "Image after Cropping: " << w << " x " << h  << " x " << nc << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^    std::cout << "Original Image: " << w << " x " << h  << " x " << nc << std::endl;$/;"	m	class:std	file:
 endl	main.cu	/^    std::cout << "Pad Image size" << padw << " x " << padh << " x " << nc << std::endl;$/;"	m	class:std	file:
@@ -478,6 +482,7 @@ epsU	main.cu	/^    float epsU, epsK = 0.0f;$/;"	l
 f	testdownConv.cu	/^    float* f = new float[outSize];$/;"	l
 features	build/CMakeFiles/feature_tests.c	/^  const char features[] = {"\\n"$/;"	v
 features	build/CMakeFiles/feature_tests.cxx	/^  const char features[] = {"\\n"$/;"	v
+file	show.py	/^file = open("image.txt", "r")$/;"	v
 grad_i	epsilon.cu	/^    int grad_i = 0;$/;"	l
 gray	main.cu	/^     bool gray = cmd.get<bool>("bw");$/;"	l
 grid	adjustImage.cu	/^    dim3 grid = computeGrid1D(block, mk * nk);$/;"	l
@@ -492,6 +497,7 @@ grid	upConvolution.cu	/^    dim3 grid = computeGrid2D(block, w + m - 1, h + n - 
 h	downConvolution.cu	/^		std::cout << "\\n" << "n: " << n << ", w: " << w << ", m: " << m << ", h: " << h << "\\n";$/;"	l
 h	helper.cu	/^    int h = m.rows;$/;"	l
 h	main.cu	/^    int h = mIn.rows;         \/\/ height$/;"	l
+h	show.py	/^h = 473$/;"	v
 h	test.cu	/^    size_t w = 7; size_t h = 7;$/;"	l
 h	testdownConv.cu	/^    size_t h = 7;$/;"	l
 handle	main.cu	/^    cublasHandle_t handle;$/;"	l
@@ -521,8 +527,10 @@ idy	pad.cu	/^    int idy = threadIdx.y + blockIdx.y*blockDim.y;$/;"	l
 idy	selectNonZero.cu	/^    int idy = threadIdx.y + blockDim.y*blockIdx.y;$/;"	l
 idy	upConvolution.cu	/^    int id, idx, idy = 0;$/;"	l
 idy	upConvolution.cu	/^    int idy = threadIdx.y + blockIdx.y*blockDim.y;$/;"	l
+image	show.py	/^image = np.array(array)$/;"	v
+image_dims	main.cu	/^        npy_intp *image_dims = {(long)padh, (long)padw, num_dim};$/;"	l
 image_index	downConvolution.cu	/^                int image_index = getIndex(relative_x, relative_y, padw) + offset_pad_img;$/;"	l
-image_offset	main.cu	/^                    int image_offset = padw * padh * channel;$/;"	l
+img	show.py	/^img = np.reshape(image, (w, h, c))$/;"	v
 imgBuffer	test.cu	/^                std::cout<<imgBuffer[i + (j*w) + (c*w*h)]<<"   ";$/;"	l
 imgBuffer	test.cu	/^    float* imgBuffer = new float[inSize];$/;"	l
 imgDownConv	testdownConv.cu	/^                std::cout<<imgDownConv[i + (j*outSizeX) + (c*outSizeX*outSizeY)]<<"   ";$/;"	l
@@ -559,8 +567,6 @@ inSizeX	testdownConv.cu	/^    size_t inSizeX = n+1;$/;"	l
 inSizeY	testdownConv.cu	/^    size_t inSizeY = m+1;$/;"	l
 in_idx	downConvolution.cu	/^	int in_idx = 0;$/;"	l
 index	divergence.cu	/^                int index = getIndex(x, y, w) + offset; $/;"	l
-index_image	main.cu	/^                           int index_image = getIndex(x + i, y + j, padw) + image_offset;$/;"	l
-index_kernel	main.cu	/^                           int index_kernel = getIndex(x, y, w) + kernel_offset;$/;"	l
 info_arch	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^char const* info_arch = "INFO" ":" "arch[" ARCHITECTURE_ID "]";$/;"	v
 info_arch	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^char const* info_arch = "INFO" ":" "arch[" ARCHITECTURE_ID "]";$/;"	v
 info_compiler	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^char const* info_compiler = "INFO" ":" "compiler[" COMPILER_ID "]";$/;"	v
@@ -590,9 +596,9 @@ kernel	main.cu	/^    float *kernel = new float[kn * sizeof(float)];$/;"	l
 kernel	test.cu	/^    float* kernel = new float[m*n];$/;"	l
 kernel	testdownConv.cu	/^    float* kernel = new float[kernelSize];$/;"	l
 kernelSize	testdownConv.cu	/^	size_t kernelSize = h*w;$/;"	l
+kernel_dims	main.cu	/^        npy_intp kernel_dims[3] = {h, w, num_dim};$/;"	l
 kernel_index	downConvolution.cu	/^                int kernel_index = getIndex(x, y, w) + offset;$/;"	l
 kernel_index	downConvolution.cu	/^            int kernel_index = getIndex(delta_x, delta_y, mk);$/;"	l
-kernel_offset	main.cu	/^                    int kernel_offset = w * h * channel;$/;"	l
 kidx	downConvolution.cu	/^	int kidx = 0;$/;"	l
 kn	main.cu	/^    size_t kn = mk*nk;$/;"	l
 lambda	main.cu	/^     float lambda = cmd.get<float>("lambda"); lambda = (lambda <= 0) ? 0.0068 : lambda; $/;"	l
@@ -607,7 +613,10 @@ main	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^void main() {}$/;"	
 main	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^int main(int argc, char* argv[])$/;"	f
 main	build/CMakeFiles/feature_tests.c	/^int main(int argc, char** argv) { (void)argv; return features[argc]; }$/;"	f
 main	build/CMakeFiles/feature_tests.cxx	/^int main(int argc, char** argv) { (void)argv; return features[argc]; }$/;"	f
-main	main.cu	/^ int main(int argc,char **argv) {$/;"	f
+main	main.cu	/^int main(int argc,char **argv) {$/;"	f
+main	pyfunctions.py	/^def main(image, kernel):$/;"	f
+matplotlib	pyfunctions.py	/^import matplotlib.pyplot as plt$/;"	i
+matplotlib	show.py	/^import matplotlib.pyplot as plt$/;"	i
 maxElem	epsilon.cu	/^    float maxElem = array[0];$/;"	l
 maxElemU	epsilon.cu	/^    float maxElemU = 0;$/;"	l
 maxGrad	epsilon.cu	/^    float maxGrad = 0;$/;"	l
@@ -625,6 +634,12 @@ nk	main.cu	/^	 int nk = cmd.get<int>("nk"); nk = (nk <= 0) ? 5 : nk;$/;"	l
 noise	helper.cu	/^float noise(float sigma)$/;"	f
 norm1	normalise.cu	/^    float norm1 = 0.0;$/;"	l
 normaliseGlobalMemCuda	normalise.cu	/^void normaliseGlobalMemCuda(float* kernel, const int m, const int n){$/;"	f
+np	pyfunctions.py	/^import numpy as np$/;"	i
+np	show.py	/^import numpy as np$/;"	i
+num_dim	main.cu	/^        int num_dim = 3;$/;"	l
+numpy_image	main.cu	/^    PyObject *numpy_kernel, *numpy_image, *numpy_output;$/;"	l
+numpy_kernel	main.cu	/^    PyObject *numpy_kernel, *numpy_image, *numpy_output;$/;"	l
+numpy_output	main.cu	/^    PyObject *numpy_kernel, *numpy_image, *numpy_output;$/;"	l
 offset	divergence.cu	/^        int offset = w * h * channel;$/;"	l
 offset	downConvolution.cu	/^        int offset = w * h * channel;$/;"	l
 offset_pad_img	downConvolution.cu	/^        int offset_pad_img = padw * padh * channel;$/;"	l
@@ -652,6 +667,7 @@ out_idx	downConvolution.cu	/^	int out_idx = 0;$/;"	l
 out_idx	downConvolution.cu	/^	int out_idx, out_x, out_y = 0;$/;"	l
 out_x	downConvolution.cu	/^	int out_idx, out_x, out_y = 0;$/;"	l
 out_y	downConvolution.cu	/^	int out_idx, out_x, out_y = 0;$/;"	l
+pOutput	main.cu	/^        PyObject *pOutput = PyObject_CallObject(py_main, py_main_params);$/;"	l
 padImgCPU	pad.cu	/^void padImgCPU(float* imgOut, const float* imgIn,$/;"	f
 padImgGlobalMemCuda	pad.cu	/^void padImgGlobalMemCuda(float *imgOut, const float *imgIn,$/;"	f
 padImgGlobalMemKernel	pad.cu	/^void padImgGlobalMemKernel(float* imgOut, const float* imgIn,$/;"	f
@@ -667,10 +683,15 @@ pad_img_size	main.cu	/^    size_t pad_img_size = padw * padh * nc;$/;"	l
 padh	main.cu	/^    size_t padh = h + nk - 1;$/;"	l
 padw	main.cu	/^    size_t padw = w + mk - 1;$/;"	l
 params	main.cu	/^    const char *params = {$/;"	l
+plt	pyfunctions.py	/^import matplotlib.pyplot as plt$/;"	i
+plt	show.py	/^import matplotlib.pyplot as plt$/;"	i
 pos_orig_x	main.cu	/^    size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; $/;"	l
 pos_orig_y	main.cu	/^    size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; $/;"	l
 prev_file	helper.cu	/^std::string prev_file = "";$/;"	v
 prev_line	helper.cu	/^int prev_line = 0;$/;"	v
+py_main	main.cu	/^    PyObject *script_name, *py_script, *py_main;$/;"	l
+py_main_params	main.cu	/^    PyObject *py_main_params;$/;"	l
+py_script	main.cu	/^    PyObject *script_name, *py_script, *py_main;$/;"	l
 qnxnto	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	/^char const* qnxnto = "INFO" ":" "qnxnto[]";$/;"	v
 qnxnto	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^char const* qnxnto = "INFO" ":" "qnxnto[]";$/;"	v
 relative_x	downConvolution.cu	/^                int relative_x = x + delta_x; $/;"	l
@@ -680,6 +701,10 @@ require	build/CMakeFiles/3.7.2/CompilerIdCXX/CMakeCXXCompilerId.cpp	/^  int requ
 right	divergence.cu	/^                float right = (x < w - 1) ? imgIn[getIndex(x + 1, y, w) + offset] : 0.0f;  $/;"	l
 rotateKernel_180	adjustImage.cu	/^void rotateKernel_180(float *d_kernel_rot_180,$/;"	f
 rotateKernel_180_Kernel	adjustImage.cu	/^void rotateKernel_180_Kernel(float *kernel_rot_180,$/;"	f
+scp_image	main.cu	/^    float *scp_image = new float [pad_img_size];$/;"	l
+scp_kernel	main.cu	/^    float *scp_kernel = new float [pad_img_size];$/;"	l
+scp_updated_kernel	main.cu	/^    float *scp_updated_kernel = new float [kn];$/;"	l
+script_name	main.cu	/^    PyObject *script_name, *py_script, *py_main;$/;"	l
 selectNonZeroGlobalMemCuda	selectNonZero.cu	/^void selectNonZeroGlobalMemCuda(float* kernel, const int m, const int n){$/;"	f
 selectNonZeroKernel	selectNonZero.cu	/^void selectNonZeroKernel(float* kernel, const int m, const int n){$/;"	f
 shift_y	main.cu	/^    size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; $/;"	l
@@ -687,8 +712,6 @@ showHistogram256	helper.cu	/^void showHistogram256(const char *windowTitle, int 
 showImage	helper.cu	/^void showImage(std::string title, const cv::Mat &mat, int x, int y)$/;"	f
 simpleTest	test.cu	/^int simpleTest(int argc, char** argv){$/;"	f
 smallnum	epsilon.cu	/^	std::cout<<"CPU.. maxU: " << maxElemU << ", maxGrad: " << maxGrad << ", smallnum: "<<smallnum<< "\\n";$/;"	l
-spc_image	main.cu	/^        float *spc_image = new float[pad_img_size];$/;"	l
-spc_kernel	main.cu	/^        float *spc_kernel = new float[img_size];$/;"	l
 subtractArrays	helper.cu	/^void subtractArrays(float *arrayOut,const float *A, const float *B, const int size)$/;"	f
 temp	adjustImage.cu	/^    cv::Mat temp =  mIn(myRectangle);$/;"	l
 temp	epsilon.cu	/^    float temp = (grad[grad_i] > 0) ? grad[grad_i] : -1.0f * grad[grad_i];$/;"	l
@@ -700,11 +723,10 @@ temp_storage_bytes	downConvolution.cu	/^    size_t temp_storage_bytes = 0;$/;"	l
 top	divergence.cu	/^                float top = (y < h - 1) $/;"	l
 top_left	divergence.cu	/^                float top_left = ((x > 0) && (y < h - 1)) $/;"	l
 totalSize	pad.cu	/^    size_t totalSize = outSizeX * outSizeY*nc;$/;"	l
-updated_kernel	main.cu	/^                std::cout << updated_kernel[getIndex(i,j,mk)] << " ";$/;"	l
-updated_kernel	main.cu	/^        float *updated_kernel = new float[kn];$/;"	l
 volatile	build/CMakeFiles/3.7.2/CompilerIdC/CMakeCCompilerId.c	11;"	d	file:
 w	helper.cu	/^    int w = m.cols;$/;"	l
 w	main.cu	/^    int w = mIn.cols;         \/\/ width$/;"	l
+w	show.py	/^w = 731$/;"	v
 w	test.cu	/^    size_t w = 7; size_t h = 7;$/;"	l
 w	testdownConv.cu	/^    size_t w = 7; $/;"	l
 wTitle	helper.cu	/^    const char *wTitle = title.c_str();$/;"	l

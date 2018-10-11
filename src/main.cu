@@ -27,23 +27,10 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 
-/*#include <python3.5m/Python.h>*/
-/*#include <python3.5m/numpy/arrayobject.h>*/
 
 #include "cublas_v2.h"
 
-void converToColMajor(float *array, float *input, int w, int h, int nc) {
-    for (int channels = 0; channels < nc; ++channels) {
-        for (int y = 0; y < h; ++y) {
-            for (int x = 0; x < w; ++x) {
-                array[y + x * h + w * h * channels] = input[x + y * w + w * h * channels];
-            }   
-        }
-    }
-
-}
-
-void saveMatrixMatlab(const char *key_name,
+void saveMatrixMatlab(char *key_name,
                       float *array,
                       int dim_x,
                       int dim_y,
@@ -53,7 +40,7 @@ void saveMatrixMatlab(const char *key_name,
     PyObject *pArgs;
 
     // load module and function
-    pName = PyUnicode_DecodeFSDefault("scipy.io");
+    pName = PyUnicode_DecodeFSDefault("pyfunctions");
     pModule = PyImport_Import(pName);
     Py_DECREF(pName);
 
@@ -64,99 +51,138 @@ void saveMatrixMatlab(const char *key_name,
     }
 
     // convert C-array to numpy array
-    pFunc = PyObject_GetAttrString(pModule, "savemat");
+    pFunc = PyObject_GetAttrString(pModule, "save_matrix");
     if (PyCallable_Check(pFunc) == 0) {
         std::cout << "ERROR: cannot link savemat function" << std::endl;
         PyErr_Print();
         exit(1);
     }
 
-    /*const int num_dims = 3;*/
-    /*npy_intp dims[num_dims] = {dim_y, dim_x, dim_z};*/
-    /*PyObject *numpy_array = PyArray_SimpleNewFromData(num_dims,*/
-                                                      /*dims,*/
-                                                      /*NPY_FLOAT32,*/
-                                                      /*array);*/
-
-    const int num_dims = 1;
-    npy_intp dims[num_dims] = {dim_y * dim_x * dim_z};
+    const int num_dims = 3;
+    npy_intp dims[num_dims] = {dim_z, dim_y, dim_x};
     PyObject *numpy_array = PyArray_SimpleNewFromData(num_dims,
                                                       dims,
-                                                      NPY_FLOAT32,
+                                                      NPY_FLOAT,
                                                       array);
 
     // create and init a dictionary to write data to a text file
-    PyObject* dictionary = PyDict_New();
     PyObject* key = PyUnicode_FromString(key_name); 
-    PyDict_SetItem(dictionary, key, numpy_array);
-
-    std::string file_name = std::string(key_name) + ".mat";
-    PyObject* ptr_file_name = PyUnicode_FromString(file_name.c_str()); 
-
-    // write to a text file
-    std::string text_file_name = std::string(key_name) + ".txt";
-    std::ofstream text_file;
-    text_file.open(text_file_name.c_str());
-    float *col_major_array = new float [dim_x * dim_y * dim_z];
-    converToColMajor(col_major_array, array, dim_x, dim_y, dim_z);
-
-    for (int i = 0 * (dim_x * dim_y); i < 3 * (dim_x * dim_y); ++i) {
-        text_file << col_major_array[i] << std::endl;
-    }
-    text_file.close();
-    delete [] col_major_array;
-
 
     // set up patameters for python function call
     pArgs = PyTuple_New(2);
-    PyTuple_SetItem(pArgs, 0, ptr_file_name);
-    PyTuple_SetItem(pArgs, 1, dictionary);
+    PyTuple_SetItem(pArgs, 0, key);
+    PyTuple_SetItem(pArgs, 1, numpy_array);
 
     // call python
     PyObject *pOutput = PyObject_CallObject(pFunc, pArgs);
     if (pOutput == NULL) {
-        std::cout << "cannot call scipy" << std::endl;
+        std::cout << "cannot call save_matrix" << std::endl;
         PyErr_Print();
         exit(1);
     }
 }
+
+void pythonConv2(float *result,
+                 float *input, int input_width, int input_height, int input_channels,
+                 float *kernel, int kernel_width, int kernel_height, int kernel_channels,
+                 PyObject *function, char *conv_mode, char *conv_tag) {
+ 
+    int num_dim = 3;
+
+    npy_intp image_dims[3] = {input_channels, input_height, input_width};
+    
+    PyObject *numpy_image = PyArray_SimpleNewFromData(num_dim,
+                                                      image_dims,
+                                                      NPY_FLOAT,
+                                                      input);
+    
+
+    npy_intp kernel_dims[3] = {kernel_channels, kernel_height, kernel_width};
+    
+    PyObject *numpy_kernel = PyArray_SimpleNewFromData(num_dim,
+                                                       kernel_dims,
+                                                       NPY_FLOAT,
+                                                       kernel);
+
+    PyObject *mode = PyUnicode_DecodeFSDefault(conv_mode);
+    PyObject *tag= PyUnicode_DecodeFSDefault(conv_tag);
+
+    PyObject *params = PyTuple_New(4);
+    PyTuple_SetItem(params, 0, numpy_image);
+    PyTuple_SetItem(params, 1, numpy_kernel);
+    PyTuple_SetItem(params, 2, mode);
+    PyTuple_SetItem(params, 3, tag);
+
+    if (PyCallable_Check(function) == 0) {
+        std::cout << "ERROR: cannot link python_callback function" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    PyObject *pOutput = PyObject_CallObject(function, params);
+    if (pOutput == NULL) {
+        std::cout << "cannot call the users script" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    float *output = (float*)PyArray_DATA(pOutput);
+    
+
+    // copy results back to application from python
+    int output_num_channels = kernel_channels == 3 ? 1 : 3;
+    int output_width = -1, output_height = - 1;
+    if (!strcmp(conv_mode, "valid")) {
+        output_width = input_width - kernel_width + 1; 
+        output_height = input_height - kernel_height + 1; 
+    }
+    else if (!strcmp(conv_mode, "full")) {
+        output_width = input_width + kernel_width - 1; 
+        output_height = input_height + kernel_height - 1;
+    }
+    else {
+        std::cout << "THERE IS NO SUCH A MODE" << std::endl;
+        exit(1);
+    }
+
+    for (int channel = 0; channel < output_num_channels; ++channel) {
+
+        int output_offset = output_width * output_height * channel;
+        for (int j = 0; j < output_height; ++j) {
+            for (int i = 0; i < output_width; ++i) {
+                result[i + j * output_width + output_offset] = 
+                    output[i + j * output_width + output_offset];
+            }
+        }
+    } 
+}
+
 
 int main(int argc,char **argv) {
 
     // TODO: ADD COMMAND LINE FUNCTIONS LATER
 
     Py_Initialize();
-    PyObject *pName, *pModule, *pFunc;
-    PyObject *pArgs;
-    PyObject *numpy_kernel, *numpy_image, *numpy_output;
 
-    pName = PyUnicode_DecodeFSDefault("scipy.signal");
-    pModule = PyImport_Import(pName);
-    Py_DECREF(pName);
+    PyObject *script_name = PyUnicode_DecodeFSDefault("pyfunctions");
+    PyObject *py_script = PyImport_Import(script_name);
 
-    if (pModule == NULL) {
-        std::cout << "ERROR: cannot import scipy lib" << std::endl;
-        PyErr_Print();
-        exit(1);
-    }
-    else {
-        std::cout << "PYTHON: managed to link scipy lib" << std::endl;
-    }
-
-    pFunc = PyObject_GetAttrString(pModule, "convolve");
-    if (PyCallable_Check(pFunc) == 0) {
-        std::cout << "ERROR: cannot link convolve function" << std::endl;
+    if (py_script == NULL) {
+        std::cout << "ERROR: cannot import the users script" << std::endl;
         PyErr_Print();
         exit(1);
     }
 
-    Py_INCREF(pFunc);
-    PyObject* mode = PyUnicode_FromString("valid"); 
-    PyObject* method = PyUnicode_FromString("direct"); 
-    pArgs = PyTuple_New(4);
+    PyObject *python_callback = PyObject_GetAttrString(py_script, "conv2");
+    if (PyCallable_Check(python_callback) == 0) {
+        std::cout << "ERROR: cannot link python_callback function" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
 
-    // call this function to be able to use numpy arrays
     import_array();
+    PyObject *pOutput;
+
 
     // parse command line parameters
     const char *params = {
@@ -166,7 +192,7 @@ int main(int argc,char **argv) {
         "{nk|5|kernel height}"
         "{cpu|false|compute on CPU}"
         "{eps|1e-3| epsilon }"
-        "{lambda|0.0068| lambda }"
+        "{lambda|3.5e-4| lambda }"
         "{iter|1| iter}"
        // "{m|mem|0|memory: 0=global, 1=shared, 2=texture}"
     };
@@ -181,11 +207,12 @@ int main(int argc,char **argv) {
 	 int mk = cmd.get<int>("mk"); mk = (mk <= 0) ? 5 : mk;
 	 int nk = cmd.get<int>("nk"); nk = (nk <= 0) ? 5 : nk;
      bool is_cpu = cmd.get<bool>("cpu");
-     float lambda = cmd.get<float>("lambda"); lambda = (lambda <= 0) ? 0.0068 : lambda; 
+     float lambda = cmd.get<float>("lambda"); lambda = (lambda <= 0) ? 3.5e-4 : lambda; 
      float lambda_min = 0.0006f;
      float eps = cmd.get<float>("eps"); eps = ( eps <= 0 ) ? 1e-3 : eps;
      int iter = cmd.get<int>("iter"); iter = ( iter <= 0 ) ? 1 : iter;
 
+     printf("EPS: %10.8f\n", eps);
      std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
 
     // TODO: LOAD IMAGE
@@ -210,18 +237,26 @@ int main(int argc,char **argv) {
     std::cout << "Original Image: " << w << " x " << h  << " x " << nc << std::endl;
     adjustImageSizeToOdd(mIn, w, h, nc);
 
-	size_t img_size = w * h * nc;
-    size_t padw = w + mk - 1;
-    size_t padh = h + nk - 1;
-    size_t pad_img_size = padw * padh * nc;
+	int img_size = w * h * nc;
+    int padw = w + mk - 1;
+    int padh = h + nk - 1;
+    int pad_img_size = padw * padh * nc;
     std::cout << "Image after Cropping: " << w << " x " << h  << " x " << nc << std::endl;
     std::cout << "Pad Image size" << padw << " x " << padh << " x " << nc << std::endl;
 
     // init kernel
     size_t kn = mk*nk;
     float *kernel = new float[kn * sizeof(float)];
-    //  initialize kernel to uniform.
-    initialiseKernel(kernel, mk, nk);
+      /*initialize kernel to uniform.*/
+    /*initialiseKernel(kernel, mk, nk);*/
+    std::cout << "MY INIT KERNEL:" << std::endl;
+    for (int j = 0; j < nk; ++j) { 
+        for (int i = 0; i < mk; ++i) {
+            kernel[i + j * mk] = (double)(1 + i + j * mk) / kn;
+            std::cout << kernel[i + j * mk] << "  ";
+        }
+        std::cout << std::endl;
+    }
 
     // initialize CUDA context
     // cudaDeviceSynchronize();
@@ -253,7 +288,8 @@ int main(int argc,char **argv) {
     // Python
     float *scp_kernel = new float [pad_img_size];
     float *scp_image = new float [pad_img_size];
-    float *scp_updated_kernel = new float [kn];
+    float *scp_output = new float [pad_img_size];
+
     // TODO: ALLOCATE MEMORY ON GPU
     // allocate arrays on GPU
     float *d_imgIn = NULL;
@@ -317,39 +353,118 @@ int main(int argc,char **argv) {
 
     for(int iterations = 0; iterations < iter; ++iterations){
 
+        /*padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, mk, nk);*/
+    
         std::cout << "Iteration num:  " << iterations << std::endl;
-        computeDownConvolutionGlobalMemCuda(d_imgDownConv0, 
-                                            d_imgInPad, 
-                                            d_kernel, 
-                                            padw, 
-                                            padh, 
-                                            nc, 
-                                            mk, nk);
+        //$$$$$$$$$$$$$$$$$$ PATCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        /*rotateKernel_180(d_kernel_temp, d_kernel, mk, nk);*/
+        /*computeDownConvolutionGlobalMemCuda(d_imgDownConv0, */
+                                            /*d_imgInPad, */
+                                            /*d_kernel_temp, */
+                                            /*padw, */
+                                            /*padh, */
+                                            /*nc, */
+                                            /*mk, nk);*/
+
+        cudaMemcpy(scp_kernel, d_kernel, kn * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(scp_image, d_imgInPad, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+
+        /*cudaMemcpy(scp_output, d_imgDownConv0, img_size * sizeof(float), cudaMemcpyDeviceToHost);*/
+        /*saveMatrixMatlab("cuda_downconv_0", scp_output, w, h, nc);*/
+
+        pythonConv2(scp_output, 
+                    scp_image, padw, padh, nc,
+                    scp_kernel, mk, nk, 1,
+                    python_callback, 
+                    "valid",
+                    "downconv_0");
+        PyErr_Print();
+
+        cudaMemcpy(d_imgDownConv0,
+                   scp_output, 
+                   img_size * sizeof(float), cudaMemcpyHostToDevice);
+
+        //$$$$$$$$$$$$$$$$$$ PATCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
         // DONE: cublas subtract k(+)*u - f. Move that to a separate function
+
         alpha = -1.0f;
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
-
         cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
         
         // TODO: compute(mirror, rotate) kernel
         rotateKernel_180(d_kernel_temp, d_kernel, mk, nk); 
 
         // TODO: check the list of  parameters 
-        computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel_temp,
-                                          w, h, nc, mk, nk);
+        //$$$$$$$$$$$$$$$$$$ PATCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        /*computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel,*/
+                                          /*w, h, nc, mk, nk);*/
 
+        cudaMemcpy(scp_kernel, d_kernel_temp, kn * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(scp_image, d_imgDownConv0, img_size * sizeof(float), cudaMemcpyDeviceToHost);
+
+
+        pythonConv2(scp_output, 
+                    scp_image, w, h, nc,
+                    scp_kernel, mk, nk, 1,
+                    python_callback, 
+                    "full",
+                    "upconv");
+        PyErr_Print();
+
+        cudaMemcpy(d_imgUpConv,
+                   scp_output, 
+                   pad_img_size * sizeof(float), cudaMemcpyHostToDevice);
+        //$$$$$$$$$$$$$$$$$$ PATCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         // compute gradient and divergence
         computeDiffOperatorsCuda(d_div, 
                                  d_dx_fw, d_dy_fw,
                                  d_dx_bw, d_dy_bw,
                                  d_dx_mixed, d_dy_mixed, 
-                                 d_imgInPad, padw, padh, nc, 1.0f, eps);
-        /*cudaThreadSynchronize();*/
+                                 d_imgInPad, padw, padh, nc,  eps);
+        
+        // divergence
+        cudaMemcpy(scp_kernel, d_div, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("div_cuda", scp_kernel, padw, padh, nc);
+        PyErr_Print();
+
+        // gradients
+        cudaMemcpy(scp_kernel, d_dx_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("cuda_fxforw", scp_kernel, padw, padh, nc);
+        PyErr_Print();
+
+        cudaMemcpy(scp_kernel, d_dy_fw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("cuda_fyforw", scp_kernel, padw, padh, nc);
+        PyErr_Print();
+
+        cudaMemcpy(scp_kernel, d_dx_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("cuda_fxback", scp_kernel, padw, padh, nc);
+        PyErr_Print();
+
+        cudaMemcpy(scp_kernel, d_dy_bw, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("cuda_fyback", scp_kernel, padw, padh, nc);
+        PyErr_Print();
+
+        cudaMemcpy(scp_kernel, d_dx_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("cuda_fxmixd", scp_kernel, padw, padh, nc);
+        PyErr_Print();
+
+        cudaMemcpy(scp_kernel, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("cuda_fymixd", scp_kernel, padw, padh, nc);
+        PyErr_Print();
 
         // TODO: subtract the divergence from upconvolution result (RAVIL)
+        cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+
         alpha = -1.0f * lambda;
         cublasSaxpy(handle, pad_img_size, &alpha, d_div, 1, d_imgUpConv, 1); CUDA_CHECK;
+
+        cudaMemcpy(scp_image, d_imgUpConv, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("cuda_gradu", scp_image, padw, padh, nc);
+        PyErr_Print();
+
+
         // TODO: compute epsilon on GPU
         computeEpsilonGlobalMemCuda(d_epsU, handle, d_imgInPad, d_imgUpConv, pad_img_size, 5e-3);
 
@@ -358,16 +473,40 @@ int main(int argc,char **argv) {
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
         cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPad, 1);
 
+        cudaMemcpy(scp_image, d_imgInPad, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        saveMatrixMatlab("cuda_upd_image", scp_image, padw, padh, nc);
+        PyErr_Print();
 
+        /*debug alpha = -1.0f;*/
+        /*debug cublasSaxpy(handle, pad_img_size, &alpha, d_imgUpConv, 1, d_imgInPad, 1);*/
+
+
+        //$$$$$$$$$$$$$$$$$$ PATCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         //convoluton of k^y*y^{t+1}
-        computeDownConvolutionGlobalMemCuda(d_imgDownConv1, 
-                                            d_imgInPad, 
-                                            d_kernel, 
-                                            padw, 
-                                            padh, 
-                                            nc, 
-                                            mk, nk);
+        /*computeDownConvolutionGlobalMemCuda(d_imgDownConv1, */
+                                            /*d_imgInPad, */
+                                            /*d_kernel, */
+                                            /*padw, */
+                                            /*padh, */
+                                            /*nc, */
+                                            /*mk, nk);*/
 
+
+        cudaMemcpy(scp_kernel, d_kernel, kn * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(scp_image, d_imgInPad, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+
+        pythonConv2(scp_output, 
+                    scp_image, padw, padh, nc,
+                    scp_kernel, mk, nk, 1,
+                    python_callback, 
+                    "valid",
+                    "downconv_1");
+        PyErr_Print();
+
+        cudaMemcpy(d_imgDownConv1,
+                   scp_output, 
+                   img_size * sizeof(float), cudaMemcpyHostToDevice);
+        //$$$$$$$$$$$$$$$$$$ PATCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         //Substraction with f
         alpha = -1.0f;
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
@@ -377,8 +516,10 @@ int main(int argc,char **argv) {
         // flip image
         // Ravi has checked that rotation is correct
         for(int c = 0; c < nc; ++c){
-            rotateKernel_180(&d_imgPadRot[c*padw*padh], &d_imgInPad[c*padw*padh], 
-                    padw, padh); 
+            rotateKernel_180(&d_imgPadRot[c * padw * padh],
+                             &d_imgInPad[c * padw * padh], 
+                             padw,
+                             padh); 
         }
 
         // TODO: perform convolution: k = u * u_pad
@@ -389,62 +530,40 @@ int main(int argc,char **argv) {
                                 /*nc); */
 
 
-        cudaMemcpy(scp_kernel, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        //$$$$$$$$$$$$$$$$$$ PATCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         cudaMemcpy(scp_image, d_imgPadRot, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(scp_kernel, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);
         
-        cv::Mat m_DEBUG(padh, padw, mIn.type());
-        convertLayeredToMat(m_DEBUG, scp_image);
-
-        showImage("DEBUG", m_DEBUG, 100, 140);
         
-        saveMatrixMatlab("kernel", scp_kernel, w, h, nc);
-        saveMatrixMatlab("image", scp_image, padw, padh, nc);
+        // PYTHON
+        pythonConv2(scp_output, 
+                    scp_image, padw, padh, nc,
+                    scp_kernel, w, h, nc,
+                    python_callback, 
+                    "valid",
+                    "image_image_conv");
 
-        int num_dim = 3;
-        npy_intp image_dims[3] = {(long)padh, (long)padw, num_dim};
-        numpy_image = PyArray_SimpleNewFromData(num_dim,
-                                                image_dims,
-                                                NPY_FLOAT,
-                                                scp_image);
-        
-
-        npy_intp kernel_dims[3] = {h, w, num_dim};
-        numpy_kernel = PyArray_SimpleNewFromData(num_dim,
-                                                 kernel_dims,
-                                                 NPY_FLOAT,
-                                                 scp_kernel);
-
-        PyTuple_SetItem(pArgs, 0, numpy_image);
-        PyTuple_SetItem(pArgs, 1, numpy_kernel);
-        PyTuple_SetItem(pArgs, 2, mode);
-        PyTuple_SetItem(pArgs, 3, method);
-
-        /*PyObject_CallObject(pFunc, pArgs);*/
-        PyObject *pOutput = PyObject_CallObject(pFunc, pArgs);
-        if (pOutput == NULL) {
-            std::cout << "cannot call scipy" << std::endl;
-            PyErr_Print();
-            exit(1);
-        }
-
-        scp_updated_kernel = (float*)PyArray_DATA(pOutput);
-
-        npy_intp *output_dim = PyArray_DIMS(pOutput);
-        std::cout << "kernel size after scipy: " 
-                  << output_dim[0] << "x"
-                  << output_dim[1] << "x" 
-                  << output_dim[2] << std::endl;
-
-        Py_INCREF(numpy_image);
-        Py_INCREF(numpy_kernel);
-        Py_INCREF(mode);
-        Py_INCREF(method);
-        Py_INCREF(pOutput);
+        /*std::cout << "C KERNEL" << std::endl;*/
+        /*for (int j = 0; j < nk; ++j) {*/
+            /*for (int i = 0; i < mk; ++i) {*/
+                /*printf("%18.12f\t", scp_output[i + j * mk]);*/
+            /*}*/
+            /*printf("\n");*/
+        /*}*/
+        /*std::cout << "C END KERNEL" << std::endl;*/
 
         cudaMemcpy(d_kernel_temp,
-                   scp_updated_kernel, 
+                   scp_output, 
                    kn * sizeof(float), cudaMemcpyHostToDevice);
 
+        /*cv::Mat mDEBUG(padh, padw, mIn.type());*/
+        /*convertLayeredToMat(mDEBUG, scp_output); */
+
+        /*showImage("DEBUG", mDEBUG, 150, 200);*/
+
+        //$$$$$$$$$$$$$$$$$$ PATCH %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        /*CHECK whether we passed right kernels (order)*/
         computeEpsilonGlobalMemCuda(d_epsK, handle, d_kernel, d_kernel_temp, kn, 1e-3);
 
         //update kernel
@@ -455,13 +574,19 @@ int main(int argc,char **argv) {
         selectNonZeroGlobalMemCuda(d_kernel, mk, nk);
 
         //normalise kernel
+        cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
         normaliseGlobalMemCuda(d_kernel, mk, nk);
 
+        cudaMemcpy(scp_output, d_kernel, kn * sizeof(float), cudaMemcpyDeviceToHost);
+
+        saveMatrixMatlab("updated_kernel", scp_output, mk, nk, 1);
+
+        // DEBUG: don't forget uncomment lines bellow
         //update lambda
-        lambda = 0.99f * lambda;
-        if(lambda < lambda_min){
-            lambda = lambda_min;
-        }
+        /*lambda = 0.99f * lambda;*/
+        /*if(lambda < lambda_min){*/
+            /*lambda = lambda_min;*/
+        /*}*/
 
     }
 
@@ -476,7 +601,7 @@ int main(int argc,char **argv) {
     cv::Mat mPadImg(padh, padw, mIn.type());
     cv::Mat mImgDownConv0(h, w, mIn.type());
     cv::Mat mImgUpConv(padh, padw, mIn.type());
-    cv::Mat mKernel(nk, mk, 1);
+    cv::Mat mKernel(nk, mk, CV_32FC1);
     
     cudaMemcpy(&epsU, d_epsU, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&epsK, d_epsK, sizeof(float), cudaMemcpyDeviceToHost);
@@ -508,12 +633,12 @@ int main(int argc,char **argv) {
     /*simpleTest(argc, argv);*/
     std::cout << "Value of epsilonU: " << epsU << std::endl;
     std::cout << "Value of epsilonK: " << epsK << std::endl;
-    cudaMemcpy(kernel, d_kernel_temp, kn*sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(scp_output, d_kernel_temp, kn*sizeof(float), cudaMemcpyDeviceToHost);
 
     std::cout << "----------------------" << std::endl;
     for(int i = 0;  i < nk; ++i){
         for(int j = 0; j < mk; ++j){
-            std::cout << kernel[j + i*mk] << "   ";
+            std::cout << scp_output[j + i*mk] << "   ";
         }
         std::cout << std::endl;
     }
@@ -537,6 +662,9 @@ int main(int argc,char **argv) {
     convertLayeredToMat(mPadImg, imgInPad);
     convertLayeredToMat(mImgDownConv0, imgDownConv0);
     convertLayeredToMat(mImgUpConv, imgUpConv);
+    convertLayeredToMat(mKernel, kernel);
+    
+    saveMatrixMatlab("kernel_cross_check", kernel, mk, nk, 1);
 
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
     showImage("Input", mIn, pos_orig_x, pos_orig_y);
@@ -579,7 +707,7 @@ int main(int argc,char **argv) {
     // Python
     delete [] scp_kernel;
     delete [] scp_image;
-    delete [] scp_updated_kernel;
+    delete [] scp_output;
 
     cudaFree(d_imgIn); CUDA_CHECK;
     cudaFree(d_imgInPad); CUDA_CHECK;

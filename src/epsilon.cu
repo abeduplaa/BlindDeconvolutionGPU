@@ -9,39 +9,48 @@
 
 
 __global__
-void computeEpsilonGlobalMemKernel(float *eps, const float *a, const int a_i, const float *grad, const int grad_i, const float smallnum)
-{
-    /**eps = 0.5f;*/
-    float temp = (grad[grad_i] > 0) ? grad[grad_i] : -1.0f * grad[grad_i];
-    *eps = -1.0f * (smallnum * a[a_i]) * ( ( temp < 1e31) ? (1.0/temp) : (1e-31) );
+void computeEpsilonGlobalMemKernel(float *eps, const float *u, const int u_max_index,
+                                   const float *grad, const int grad_max_index, 
+                                   const float smallnum) {
+    
+    // NOTE: assume that u is always greater than zero
+    float abs_grad_max = (grad[grad_max_index] > 0.0) ? grad[grad_max_index] 
+                                                      : -1.0f * grad[grad_max_index];
+
+    float denominator = max(1e-31, abs_grad_max);
+    *eps = -1.0f * (smallnum * u[u_max_index]) / denominator;
 }
 
 
-void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float *a, const float *grad, const int size, const float smallnum)
-{
+void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle,
+                                 const float *u, const float *grad,
+                                 const int size, const float smallnum) {
     // allocate block and grid size
 	// TODO: What should these values be?
-	dim3 block(32, 8, 1);
-	dim3 grid = computeGrid2D(block, 8, 8);
+	/*dim3 block(32, 8, 1);*/
+	/*dim3 grid = computeGrid2D(block, 8, 8);*/
+
+    // NOTE: assume that u is greater than zero
 
     //initialize indices:
-    int a_i = 0;
-    int grad_i = 0;
+    int u_max_index = 0;
+    int grad_max_index = 0;
     
     // call cublas functions to get highest value elements:
-    cublasIsamax(handle, size, a, 1, &a_i); 
+    cublasIsamax(handle, size, u, 1, &u_max_index); 
     CUDA_CHECK;
     
-    cublasIsamax(handle, size, grad, 1, &grad_i);
+    cublasIsamax(handle, size, grad, 1, &grad_max_index);
     CUDA_CHECK;
 
 	// subtract one due to BLAS starting at 1
-	a_i -= 1;
-    grad_i -= 1;
+	u_max_index -= 1;
+    grad_max_index -= 1;
     
 	//calling cuda kernel
-	//TODO: use cublas function to calculate epsilon instead of creating new kernel
-    computeEpsilonGlobalMemKernel <<<grid,block>>> (eps, a, a_i, grad, grad_i, smallnum);
+    computeEpsilonGlobalMemKernel<<<1,1>>>(eps, u, u_max_index,
+                                           grad, grad_max_index,
+                                           smallnum);
 }
 
 

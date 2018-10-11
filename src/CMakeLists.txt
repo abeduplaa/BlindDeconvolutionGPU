@@ -17,7 +17,7 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 
 
 
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3; -std=c++11; -arch=sm_50; -Xptxas -v)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -g; -std=c++11; -arch=sm_50; -Xptxas -v)
 
 #add_definitions(-DDEBUG)
 file(GLOB SRCS "./*.cu")
