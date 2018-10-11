@@ -19,8 +19,13 @@ set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3; -std=c++11; -arch=sm_50; -Xptxas -v
 file(GLOB SRCS "./*.cu")
 
 include_directories(${CMAKE_SOURCE_DIR})
+
+#set location of libcudnn.so and include directory of CUDNN
+set(CUDNN_LIB /usr/prakt/s0012/Desktop/s0012/cuda/lib64/libcudnn.so)
+include_directories(/usr/prakt/s0012/Desktop/s0012/cuda/include)
+
 message( ${CMAKE_SOURCE_DIR} )
 message( ${OpenCV_INCLUDE_DIRS} )
 cuda_add_executable(deblur ${SRCS})
-target_link_libraries(deblur -lm ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CUDA_cublas_LIBRARY})
+target_link_libraries(deblur -lm ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CUDA_cublas_LIBRARY} ${CUDNN_LIB})
 # Add CUBLAS to target

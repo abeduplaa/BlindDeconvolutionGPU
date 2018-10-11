@@ -21,9 +21,14 @@
 #include "epsilon.cuh"
 #include "selectNonZero.cuh"
 #include "normalise.cuh"
+#include "buildPyramid.cuh"
+#include "cudnnDownConvolution.cuh"
+#include "cudnnUpConvolution.cuh"
 
 #include "cublas_v2.h"
 
+#define INTERPOLATION_METHOD CV_INTER_CUBIC
+//#define INTERPOLATION_METHOD CV_LINEAR
 
 /*int main(int argc,char **argv)*/
 /*{*/
@@ -44,7 +49,7 @@
         "{nk|5|kernel height}"
         "{cpu|false|compute on CPU}"
         "{eps|1e-3| epsilon }"
-        "{lambda|0.0068| lambda }"
+        "{lambda|0.0068|lambda }"
         "{iter|1| iter}"
        // "{m|mem|0|memory: 0=global, 1=shared, 2=texture}"
     };
@@ -56,11 +61,14 @@
     // size_t repeats = (size_t)cmd.get<int>("repeats");
     // load the input image as grayscale
      bool gray = cmd.get<bool>("bw");
-	 int mk = cmd.get<int>("mk"); mk = (mk <= 0) ? 5 : mk;
+	 int mk = cmd.get<int>("mk"); 
+     mk = (mk <= 0) ? 5 : mk;
 	 int nk = cmd.get<int>("nk"); nk = (nk <= 0) ? 5 : nk;
      bool is_cpu = cmd.get<bool>("cpu");
-     float lambda = cmd.get<float>("lambda"); lambda = (lambda <= 0) ? 0.0068 : lambda; 
-     float lambda_min = 0.0006f;
+     float lambda = cmd.get<float>("lambda"); 
+     std::cout << "lambda" << lambda << std::endl;
+     lambda = (lambda <= 0) ? 0.00035 : lambda; 
+     float lambda_min = 0.00035f;
      float eps = cmd.get<float>("eps"); eps = ( eps <= 0 ) ? 1e-3 : eps;
      int iter = cmd.get<int>("iter"); iter = ( iter <= 0 ) ? 1 : iter;
 
@@ -108,6 +116,61 @@
     // Initialize Cublas
     cublasHandle_t handle;
     cublasCreate(&handle);
+
+    //Initialize CUDNN
+    cudnnHandle_t cudnn;
+    cudnnCreate(&cudnn);
+
+    //Pyramid parameter
+    int pyramidSize =  0;
+    const int smallestKernel = 3;
+    const float kernelMultiplier = 1.1f;
+    const float lambdaMultiplier = 1.9f;
+    const float largestLambda = .11f;
+    pyramidSize = pyramidScale(mk,nk, smallestKernel, kernelMultiplier, lambdaMultiplier, lambda, largestLambda);
+    std::cout<< "Pyramid Size: " << pyramidSize << std::endl;
+    // Build pyramid paramters:
+    int *wP = new int[pyramidSize];
+    int *hP = new int[pyramidSize];
+    int *mP = new int[pyramidSize];
+    int *nP = new int[pyramidSize];
+    float *lambdas = new float[pyramidSize];
+
+    buildPyramid1(wP, hP, mP, nP, lambdas, w, h, mk, nk, smallestKernel, kernelMultiplier, lambdaMultiplier, lambda, pyramidSize);
+
+
+	// DEBUGGING:
+	std::cout<< "pyramid facts: mP:  ";
+	for(int i=0; i<pyramidSize; i++)
+	{
+		std::cout<< mP[i] << ", ";
+	}
+	std::cout<< "\n";
+    std::cout<< "pyramid facts: nP:  " ;
+    for(int i=0; i<pyramidSize; i++)
+    {
+        std::cout<< nP[i] << ", ";
+    }
+    std::cout<< "\n";
+    std::cout<< "pyramid facts: wP:  " ;
+    for(int i=0; i<pyramidSize; i++)
+    {
+        std::cout<< wP[i] << ", ";
+    }
+    std::cout<< "\n";
+    std::cout<< "pyramid facts: hP:  ";
+    for(int i=0; i<pyramidSize; i++)
+    {
+        std::cout<< hP[i] << ", ";
+    }
+    std::cout<< "\n";
+    std::cout<< "pyramid facts: lambdas:  ";
+    for(int i=0; i<pyramidSize; i++)
+    {
+        std::cout<< lambdas[i] << ", ";
+    }
+    std::cout<< "\n";
+
 
     // ### Set the output image format
     cv::Mat mOut(h, w, mIn.type());  // grayscale or color depending on input image, nc layers
@@ -196,22 +259,137 @@
     cudaMemcpy(d_kernel, kernel, kn * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
 
     padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, mk, nk);
+    //Start loop  for pyramid
+    
+    int START_LEVEL = 8;
+    for(int level = START_LEVEL; level >= 8; --level){
+        //copy image and padded image back to CPU
+        std::cout << "Level Number:   " << level << std::endl;
+        cudaMemcpy(imgIn, d_imgIn, img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(imgInPad, d_imgInPad, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
+        cudaMemcpy(kernel, d_kernel, kn * sizeof(float), cudaMemcpyDeviceToHost);
+        cv::Mat mImgOld(h, w, mIn.type());
+        cv::Mat mImgPadOld(padh, padw, mIn.type());
+        cv::Mat mKernelOld(nk, mk, CV_32F);
+        //update the dimensions
+        w = wP[level]; h = hP[level];
+        mk = mP[level]; nk = nP[level];
+        padw = w + mk - 1;
+        padh = h + nk - 1;
+        img_size = w * h * nc;
+        pad_img_size = padw * padh * nc;
+        kn = mk * nk;
+        //convert array to image
+        cv::Mat mImgResize(h, w, mIn.type());
+        cv::Mat mImgPadResize(padh, padw, mIn.type());
+        cv::Mat mKernelResize(nk, mk, CV_32F);
+        convertLayeredToMat(mImgOld, imgIn);
+        convertLayeredToMat(mImgPadOld, imgInPad);
+        convertLayeredToMat(mKernelOld, kernel);
+        //Display image of previous iteration
+        //convert Layered to mat
+        //resize image
+        cv::resize(mImgOld, mImgResize, mImgResize.size(), 0, 0, INTERPOLATION_METHOD);
+        cv::resize(mImgPadOld, mImgPadResize, mImgPadResize.size(), 0, 0, INTERPOLATION_METHOD);
+        cv::resize(mKernelOld, mKernelResize, mKernelResize.size(), 0, 0, INTERPOLATION_METHOD);
+        //Copy image to array
+        showImage("Image resized", mImgResize, 200, 200);
+        showImage("Padded resized", mImgPadResize, 100, 200);
+        showImage("Kernel resized", mKernelResize * 100, 200, 200);
+        cv::waitKey(0);
+        
+        //copy image to GPU
+        convertMatToLayered(imgIn, mImgResize);
+        convertMatToLayered(imgInPad, mImgPadResize);
+        convertMatToLayered(kernel, mKernelResize);
+        cudaMemcpy(d_kernel, kernel, kn * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_imgIn, imgIn, img_size * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_imgInPad, imgInPad, pad_img_size * sizeof(float), cudaMemcpyHostToDevice);
+    //}
+    
 
+    //Declaration of CUDNN descriptors
+    cudnnTensorDescriptor_t input_descriptor1, input_descriptor2, input_descriptor3;
+    cudnnFilterDescriptor_t kernel_descriptor1, kernel_descriptor2, kernel_descriptor3;
+    cudnnConvolutionDescriptor_t convolution_descriptor1, convolution_descriptor2, convolution_descriptor3;
+    cudnnTensorDescriptor_t output_descriptor1, output_descriptor2, output_descriptor3;
+    cudnnConvolutionFwdAlgo_t convolution_algorithm1, convolution_algorithm2, convolution_algorithm3;
+
+    //workspace for cudnn
+    void* d_workspace1{nullptr};
+    void* d_workspace2{nullptr};
+    void* d_workspace3{nullptr};
+
+    //Defining Descriptors
+    size_t workspace_bytes1 = createDescriptorsdc0(input_descriptor1,
+                                               kernel_descriptor1,
+                                               convolution_descriptor1,
+                                               output_descriptor1,
+                                               convolution_algorithm1,
+                                               cudnn,
+                                               padw,
+                                               padh,
+                                               mk,
+                                               nk,
+                                               nc);
+    cudaMalloc(&d_workspace1, workspace_bytes1);
+
+    size_t workspace_bytes2 = createDescriptorsUp(input_descriptor2,
+                                               kernel_descriptor2,
+                                               convolution_descriptor2,
+                                               output_descriptor2,
+                                               convolution_algorithm2,
+                                               cudnn,
+                                               w,
+                                               h,
+                                               mk,
+                                               nk,
+                                               nc);
+    cudaMalloc(&d_workspace2, workspace_bytes2);
+
+    size_t workspace_bytes3 = createDescriptorsdc1(input_descriptor3,
+                                               kernel_descriptor3,
+                                               convolution_descriptor3,
+                                               output_descriptor3,
+                                               convolution_algorithm3,
+                                               cudnn,
+                                               padw,
+                                               padh,
+                                               w,
+                                               h,
+                                               nc);
+    cudaMalloc(&d_workspace3, workspace_bytes3);
+    
     for(int iterations = 0; iterations < iter; ++iterations){
         std::cout << "Iteration num:  " << iterations << std::endl;
 
         // TODO: compute(mirror, rotate) kernel
         rotateKernel_180(d_kernel_temp, d_kernel, mk, nk); 
         cudaThreadSynchronize();
-
-        computeDownConvolutionGlobalMemCuda(d_imgDownConv0, 
-                                            d_imgInPad, 
-                                            d_kernel_temp, 
-                                            padw, 
-                                            padh, 
-                                            nc, 
-                                            mk, 
-                                            nk);
+        //Our code
+        /*computeDownConvolutionGlobalMemCuda(d_imgDownConv0, */
+                                            /*d_imgInPad, */
+                                            /*d_kernel_temp, */
+                                            /*padw, */
+                                            /*padh, */
+                                            /*nc, */
+                                            /*mk, */
+                                            /*nk);*/
+        //CUDNN
+        callConvolutiondc0(d_imgDownConv0,
+                         d_imgInPad,
+                         d_kernel_temp,
+                         padw, padh,
+                         mk, nk,
+                         w,h,nc,
+                         input_descriptor1,
+                         kernel_descriptor1,
+                         convolution_descriptor1,
+                         output_descriptor1,
+                         convolution_algorithm1,
+                         d_workspace1,
+                         cudnn,
+                         workspace_bytes1);
         cudaThreadSynchronize();
         /*if(iterations == 1)*/
             /*break;*/
@@ -220,9 +398,26 @@
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
         cublasSaxpy(handle, img_size, &alpha, d_imgIn, 1, d_imgDownConv0, 1); CUDA_CHECK;
         cudaThreadSynchronize();
+        
+        //Our Call
+        /*computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel, w, h, nc, mk, nk);*/
 
-        // TODO: check the list of  parameters 
-        computeUpConvolutionGlobalMemCuda(d_imgUpConv, d_imgDownConv0, d_kernel, w, h, nc, mk, nk);
+        //CUDNN
+        callConvolutionUp(d_imgUpConv,
+                         d_imgDownConv0,
+                         d_kernel,
+                         w, h,
+                         mk, nk,
+                         padw, padh, nc,
+                         input_descriptor2,
+                         kernel_descriptor2,
+                         convolution_descriptor2,
+                         output_descriptor2,
+                         convolution_algorithm2,
+                         d_workspace2,
+                         cudnn,
+                         workspace_bytes2);
+
         cudaThreadSynchronize();
 
         // compute gradient and divergence
@@ -244,20 +439,35 @@
         
 
         // TODO: update output image u = u - eps*grad
-            // USE CUBLAS AXPY() FUNCTION HERE
         cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
         cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPad, 1);
         cudaThreadSynchronize();
 
 
         //convoluton of k^y*y^{t+1}
-        computeDownConvolutionGlobalMemCuda(d_imgDownConv1, 
-                                            d_imgInPad, 
-                                            d_kernel_temp, 
-                                            padw, 
-                                            padh, 
-                                            nc, 
-                                            mk, nk);
+        //Our implementation
+        /*computeDownConvolutionGlobalMemCuda(d_imgDownConv1, */
+                                            /*d_imgInPad, */
+                                            /*d_kernel_temp, */
+                                            /*padw, */
+                                            /*padh, */
+                                            /*nc, */
+                                            /*mk, nk);*/
+        //CUDNN
+        callConvolutiondc0(d_imgDownConv1,
+                         d_imgInPad,
+                         d_kernel_temp,
+                         padw, padh,
+                         mk, nk,
+                         w,h,nc,
+                         input_descriptor1,
+                         kernel_descriptor1,
+                         convolution_descriptor1,
+                         output_descriptor1,
+                         convolution_algorithm1,
+                         d_workspace1,
+                         cudnn,
+                         workspace_bytes1);
         cudaThreadSynchronize();
 
         //Substraction with f
@@ -270,25 +480,32 @@
         // Ravi has checked that rotation is correct
         for(int c = 0; c < nc; ++c){
             rotateKernel_180(&d_imgPadRot[c*padw*padh], &d_imgInPad[c*padw*padh], 
-                    padw, padh); 
+                    padw, padh);
+           cudaThreadSynchronize(); 
             rotateKernel_180(&d_imgDownConv1Rot[c*w*h], &d_imgDownConv1[c*w*h], w, h);
             cudaThreadSynchronize();
         }
 
         // TODO: perform convolution: k = u * u_pad
-        // computeDownConvolutionGlobalMemCuda1(d_kernel_temp, 
-        //                                    d_imgPadRot, 
-        //                                    d_imgDownConv1Rot, 
-        //                                    padw, 
-        //                                    padh, 
-        //                                    nc, 
-        //                                    w, h);
+        //Our implementation
+        /*computeImageConvolution(d_kernel_temp, mk, nk ,*/
+                                /*d_imgDownConv1Rot, d_imgInBuffer, */
+                                /*w, h, */
+                                /*d_imgPadRot, padw, padh, */
+                                /*nc); */
+        //CUDNN
+        callConvolutiondc1(d_kernel_temp,
+                         d_imgPadRot,
+                         d_imgDownConv1Rot,
+                         input_descriptor3,
+                         kernel_descriptor3,
+                         convolution_descriptor3,
+                         output_descriptor3,
+                         convolution_algorithm3,
+                         d_workspace3,
+                         cudnn,
+                         workspace_bytes3);
 
-        computeImageConvolution(d_kernel_temp, mk, nk ,
-                                d_imgDownConv1Rot, d_imgInBuffer, 
-                                w, h, 
-                                d_imgPadRot, padw, padh, 
-                                nc); 
         cudaThreadSynchronize();
         
         computeEpsilonGlobalMemCuda(d_epsK, handle, d_kernel, d_kernel_temp, kn, 1e-3);
@@ -332,7 +549,25 @@
             lambda = lambda_min;
         }
 
+    
     }
+
+    destroyDescriptors(input_descriptor1,
+                       kernel_descriptor1,
+                       convolution_descriptor1,
+                       output_descriptor1);
+    cudaFree(d_workspace1);
+    destroyDescriptors(input_descriptor2,
+                       kernel_descriptor2,
+                       convolution_descriptor2,
+                       output_descriptor2);
+    cudaFree(d_workspace2);
+    destroyDescriptors(input_descriptor3,
+                       kernel_descriptor3,
+                       convolution_descriptor3,
+                       output_descriptor3);
+    cudaFree(d_workspace3);
+   }
 	// convert range of each channel to [0,1]
 	// init raw input image array (and convert to layered)
 
@@ -359,7 +594,7 @@
     cv::Mat mPadImg(padh, padw, mIn.type());
     cv::Mat mImgDownConv0(h, w, mIn.type());
     cv::Mat mImgUpConv(padh, padw, mIn.type());
-    cv::Mat mKernel(nk, mk, 1);
+    cv::Mat mKernel(nk, mk, CV_32F);
     
     cudaMemcpy(&epsU, d_epsU, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&epsK, d_epsK, sizeof(float), cudaMemcpyDeviceToHost);
@@ -405,20 +640,20 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
     std::cout << "Value of epsilonU: " << epsU << std::endl;
     std::cout << "Value of epsilonK: " << epsK << std::endl;
     std::cout << "Value of lambda at the end: " << lambda << std::endl;
-
+/*
     for(int i = 0;  i < nk; ++i){
         for(int j = 0; j < mk; ++j){
             std::cout << std::setprecision(7) << kernel[j + i*mk] << "   ";
         }
         std::cout << std::endl;
-    }
-    std::cout << "YOLO" << std::endl; 
-    for(int i = 0;  i < 5; ++i){
-        for(int j = 0; j < 5; ++j){
-            std::cout << std::setprecision(7) << imgDownConv0[j +  i*w] << "   ";
-        }
-        std::cout << std::endl;
-    }
+    }*/
+    /*std::cout << "YOLO" << std::endl; */
+    /*for(int i = 0;  i < 5; ++i){*/
+        /*for(int j = 0; j < 5; ++j){*/
+            /*std::cout << std::setprecision(7) << imgDownConv0[j +  i*w] << "   ";*/
+        /*}*/
+        /*std::cout << std::endl;*/
+    /*}*/
 
     //DEBUG ENDS
     
@@ -430,6 +665,7 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
     convertLayeredToMat(mPadImg, imgInPad);
     convertLayeredToMat(mImgDownConv0, imgDownConv0);
     convertLayeredToMat(mImgUpConv, imgUpConv);
+    convertLayeredToMat(mKernel, kernel);
 
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
     showImage("Input", mIn, pos_orig_x, pos_orig_y);
@@ -437,7 +673,7 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
     /*showImage("dy", m_dy, pos_orig_x, pos_orig_y + w + shift_y);*/
     showImage("divergence", m_div, pos_orig_x + w, pos_orig_y + w + shift_y);
     showImage("Output Image", mPadImg, 100, 140);
-    showImage("Kernel", mKernel, 150, 200);
+    showImage("Kernel", mKernel*10000, 150, 200);
     /*showImage("Down Conv 0", mImgDownConv0, 200, 240);*/
     /*showImage("Up Conv", mImgUpConv, 300, 340);*/
 
@@ -494,6 +730,7 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
     cudaFree(d_div); CUDA_CHECK;
 
     cublasDestroy(handle);
+    cudnnDestroy(cudnn);
 
     // close all opencv windows
     cv::destroyAllWindows();

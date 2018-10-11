@@ -11,7 +11,17 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <string>
 #include "cublas_v2.h"
+#include <cudnn.h>
 
+#define checkCUDNN(expression)                               \
+  {                                                          \
+    cudnnStatus_t status = (expression);                     \
+    if (status != CUDNN_STATUS_SUCCESS) {                    \
+      std::cerr << "Error on line " << __LINE__ << ": "      \
+                << cudnnGetErrorString(status) << std::endl; \
+      std::exit(EXIT_FAILURE);                               \
+    }                                                        \
+  }
 
 
 // CUDA utility functions
