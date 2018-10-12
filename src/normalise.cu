@@ -24,6 +24,7 @@ void normaliseGlobalMemCuda(float* kernel, const int m, const int n){
     //TODO: pass handle as parameter
     cublasHandle_t handle;
     cublasCreate(&handle);
+    cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
     cublasSasum(handle, m*n, kernel, 1, &norm1);
     cublasDestroy(handle);
     //calling cuda kernel

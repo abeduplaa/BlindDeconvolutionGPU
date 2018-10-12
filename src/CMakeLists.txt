@@ -12,12 +12,14 @@ find_package(OpenCV COMPONENTS
 if(opencv_core_found)
     include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3; -std=c++11; -arch=sm_50; -Xptxas -v)
 
 #add_definitions(-DDEBUG)
 file(GLOB SRCS "./*.cu")
 
+find_package(PythonLibs 2.7 REQUIRED)
 include_directories(${CMAKE_SOURCE_DIR})
 
 #set location of libcudnn.so and include directory of CUDNN
@@ -27,5 +29,5 @@ include_directories(/usr/prakt/s0012/Desktop/s0012/cuda/include)
 message( ${CMAKE_SOURCE_DIR} )
 message( ${OpenCV_INCLUDE_DIRS} )
 cuda_add_executable(deblur ${SRCS})
-target_link_libraries(deblur -lm ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CUDA_cublas_LIBRARY} ${CUDNN_LIB})
+target_link_libraries(deblur -lm ${PYTHON_LIBRARIES} ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CUDA_cublas_LIBRARY} ${CUDNN_LIB})
 # Add CUBLAS to target

@@ -71,7 +71,7 @@ void computeDivergenceKernel(float *div,
                              const float *dx_bw, const float *dy_bw,
                              const float *dx_mixed, const float *dy_mixed, 
                              const float *imgIn, const int w, const int h, const int nc,
-                             const float lamda, const float eps) {
+                             const float eps) {
 
     for (int channel = 0; channel < nc; ++channel) {
 
@@ -82,10 +82,10 @@ void computeDivergenceKernel(float *div,
         for (int x = idx; x < w; x += blockDim.x * gridDim.x) {
             for (int y = idy; y < h; y += blockDim.y * gridDim.y) {
                 int index = getIndex(x, y, w) + offset; 
-                div[index] = lamda * (((dx_fw[index] + dy_fw[index]) 
+                div[index] = (((dx_fw[index] + dy_fw[index]) 
                                         / computeDuffusivity(dx_fw[index],dy_fw[index], eps)) 
-                           - dx_bw[index] / computeDuffusivity(dx_bw[index], dy_mixed[index], eps)
-                           - dy_bw[index] / computeDuffusivity(dx_mixed[index], dy_bw[index], eps)); 
+                           - (dx_bw[index] / computeDuffusivity(dx_bw[index], dy_mixed[index], eps))
+                           - (dy_bw[index] / computeDuffusivity(dx_mixed[index], dy_bw[index], eps))); 
             }
         }
     }
@@ -97,7 +97,7 @@ void computeDiffOperatorsCuda(float *d_div,
                               float *d_dx_bw, float *d_dy_bw,
                               float *d_dx_mixed, float *d_dy_mixed, 
                               const float *d_imgIn, const int w, const int h, const int nc,
-                              const float lamda, const float eps) {
+                              const float eps) {
     dim3 block(32, 4, 1);
     dim3 grid = computeGrid2D(block, w, h);
     
@@ -105,13 +105,13 @@ void computeDiffOperatorsCuda(float *d_div,
                                             d_dx_bw, d_dy_bw,
                                             d_dx_mixed, d_dy_mixed, 
                                             d_imgIn, w, h, nc);
-
+    cudaThreadSynchronize();
     computeDivergenceKernel<<<grid, block>>>(d_div, 
                                              d_dx_fw, d_dy_fw,
                                              d_dx_bw, d_dy_bw,
                                              d_dx_mixed, d_dy_mixed, 
                                              d_imgIn, w, h, nc,
-                                             lamda, eps);
+                                             eps);
     CUDA_CHECK;
 }
 

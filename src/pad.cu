@@ -22,10 +22,10 @@ void padImgGlobalMemKernel(float* imgOut, const float* imgIn,
                 imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
             }
             else{
-		tempX = (tempX < 0) ? 0 : w - 1;
-		tempY = (tempY < 0) ? 0 : h - 1;
+                tempX = (tempX >= 0 && tempX < w) ? tempX : (tempX < 0) ? 0 : w - 1;
+                tempY = (tempY >= 0 && tempY < h) ? tempY : (tempY < 0) ? 0 : h - 1;
                 imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
-                //imgOut[id] = 0.0f;
+                /*imgOut[id] = 0.0f;*/
             }
         }
     }

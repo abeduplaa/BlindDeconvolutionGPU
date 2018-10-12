@@ -12,8 +12,9 @@ __global__
 void computeEpsilonGlobalMemKernel(float *eps, const float *a, const int a_i, const float *grad, const int grad_i, const float smallnum)
 {
     /**eps = 0.5f;*/
-    float temp = (grad[grad_i] > 0) ? grad[grad_i] : -1.0f * grad[grad_i];
-    *eps = -1.0f * (smallnum * a[a_i]) * ( ( temp < 1e31) ? (1.0/temp) : (1e-31) );
+    float temp = fabs(grad[grad_i]);
+    float denominator = max(1e-31, temp);
+    *eps = -1.0f * smallnum * a[a_i] / denominator;
 }
 
 
@@ -21,8 +22,8 @@ void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float 
 {
     // allocate block and grid size
 	// TODO: What should these values be?
-	dim3 block(32, 8, 1);
-	dim3 grid = computeGrid2D(block, 8, 8);
+	/*dim3 block(32, 8, 1);*/
+	/*dim3 grid = computeGrid2D(block, 8, 8);*/
 
     //initialize indices:
     int a_i = 0;
@@ -41,7 +42,7 @@ void computeEpsilonGlobalMemCuda(float *eps, cublasHandle_t handle, const float 
     
 	//calling cuda kernel
 	//TODO: use cublas function to calculate epsilon instead of creating new kernel
-    computeEpsilonGlobalMemKernel <<<grid,block>>> (eps, a, a_i, grad, grad_i, smallnum);
+    computeEpsilonGlobalMemKernel <<<1,1>>> (eps, a, a_i, grad, grad_i, smallnum);
 }
 
 

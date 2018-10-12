@@ -239,7 +239,7 @@ void computeImageConvolution(float *d_kernel_temp, const int mk, const int nk ,
                                                      nc);
             
             CUDA_CHECK;
-            cudaThreadSynchronize();
+            /*cudaThreadSynchronize();*/
 
 
             cub::DeviceReduce::Sum<float*, float*>(d_temp_storage,
@@ -247,7 +247,7 @@ void computeImageConvolution(float *d_kernel_temp, const int mk, const int nk ,
                                                    d_imgInBuffer,
                                                    &d_kernel_temp[kernel_index],
                                                    w*h*nc);
-            cudaThreadSynchronize();
+            /*cudaThreadSynchronize();*/
         }
     }
     cudaFree(d_temp_storage);  CUDA_CHECK;
