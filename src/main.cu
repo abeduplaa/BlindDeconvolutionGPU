@@ -12,7 +12,6 @@
 #include <opencv2/contrib/contrib.hpp>
 //#include <opencv2/imgcodecs/imgcodecs.hpp>
 
-#include "test.cuh"
 #include "helper.cuh"
 #include "downConvolution.cuh"
 #include "testdownConv.cuh"
@@ -108,7 +107,7 @@ void saveMatrixMatlab(const char *key_name,
         "{nk|5|kernel height}"
         "{eps|1e-3| epsilon }"
         "{lambda|0.00035|lambda }"
-        "{iter|1| iter}"
+        "{iter|10| iter}"
         "{bc|r| bc}"
     };
     cv::CommandLineParser cmd(argc, argv, params);
@@ -128,8 +127,9 @@ void saveMatrixMatlab(const char *key_name,
     float eps = cmd.get<float>("eps"); 
     eps = ( eps <= 0 ) ? 1e-3 : eps;
     int iter = cmd.get<int>("iter"); 
-    iter = ( iter <= 0 ) ? 1 : iter;
-    char bc = cmd.get<char>("bc");   
+    iter = ( iter <= 0 ) ? 10 : iter;
+    std::string bc1 = cmd.get<std::string>("bc");   
+	char bc = bc1.c_str()[0];
     BoundaryCondition boundary;
     selectBoundaryCondition(bc, boundary);
 
@@ -336,6 +336,7 @@ void saveMatrixMatlab(const char *key_name,
     /*int START_LEVEL = 0;*/
     std::cout<< "Starting level" << START_LEVEL << std::endl;
     for(int level = START_LEVEL; level >= 0; --level){
+		//break;
         //copy image and padded image back to CPU
         std::cout << "Level Number:   " << level << 
             ", lambda: " << lambdas[level] << 

@@ -73,7 +73,7 @@ void padImgSymmetricGlobalMemKernel(float* imgOut, const float* imgIn,
             }
             else{
                 tempX = (tempX >= 0 && tempX < w) ? tempX : (tempX < 0) ? (-1*tempX) - 1 : 2*w - tempX - 1;
-                tempY = (tempY >= 0 && tempY < h) ? tempY : (tempY < 0) ? (-1*tempY) - 1 : 2*h - tempY - 1
+                tempY = (tempY >= 0 && tempY < h) ? tempY : (tempY < 0) ? (-1*tempY) - 1 : 2*h - tempY - 1;
                 imgOut[id] = imgIn[tempX + (tempY*w) +(c*w*h)];
             }
         }
