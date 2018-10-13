@@ -9,8 +9,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/contrib/contrib.hpp>
-//#include <opencv2/imgcodecs/imgcodecs.hpp>
 
 #include "helper.cuh"
 #include "downConvolution.cuh"
@@ -50,7 +48,8 @@ void saveMatrixMatlab(const char *key_name,
     PyObject *pArgs;
 
     // load module and function
-    pName = PyString_FromString("pyfunctions");
+    /*pName = PyString_FromString("pyfunctions");*/
+    pName = PyUnicode_DecodeFSDefault("pyfunctions");
     pModule = PyImport_Import(pName);
     Py_DECREF(pName);
 
