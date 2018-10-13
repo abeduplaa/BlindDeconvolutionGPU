@@ -33,7 +33,7 @@
 #include "cublas_v2.h"
 
 #define INTERPOLATION_METHOD CV_INTER_CUBIC
-/*#define INTERPOLATION_METHOD CV_INTER_LINEAR*/
+//#define INTERPOLATION_METHOD CV_LINEAR
 
 /*int main(int argc,char **argv)*/
 /*{*/
@@ -41,7 +41,7 @@
 /*}*/
 
 
-void saveMatrixMatlab(const char *key_name,
+void saveMatrixMatlab(char *key_name,
                       float *array,
                       int dim_x,
                       int dim_y,
@@ -103,38 +103,37 @@ void saveMatrixMatlab(const char *key_name,
     const char *params = {
         "{image| |input image}"
         "{bw|false|load input image as grayscale/black-white}"
-        "{cpu|false|compute on CPU}"
         "{mk|5|kernel width }"
         "{nk|5|kernel height}"
+        "{cpu|false|compute on CPU}"
         "{eps|1e-3| epsilon }"
         "{lambda|0.00035|lambda }"
         "{iter|1| iter}"
-        "{bc|r| bc}"
+       // "{m|mem|0|memory: 0=global, 1=shared, 2=texture}"
     };
     cv::CommandLineParser cmd(argc, argv, params);
 
     // input image
     std::string inputImage = cmd.get<std::string>("image");
 
-    bool gray = cmd.get<bool>("bw");
-	int mk = cmd.get<int>("mk"); 
-    mk = (mk <= 0) ? 5 : mk;
-	int nk = cmd.get<int>("nk"); nk = (nk <= 0) ? 5 : nk;
-    bool is_cpu = cmd.get<bool>("cpu");
-    float lambda = cmd.get<float>("lambda"); 
-    std::cout << "lambda" << lambda << std::endl;
-    lambda = (lambda <= 0) ? 0.00035 : lambda; 
-    float lambda_min = 0.00001f;
-    float eps = cmd.get<float>("eps"); 
-    eps = ( eps <= 0 ) ? 1e-3 : eps;
-    int iter = cmd.get<int>("iter"); 
-    iter = ( iter <= 0 ) ? 1 : iter;
-    char bc = cmd.get<char>("bc");   
-    BoundaryCondition boundary;
-    selectBoundaryCondition(bc, boundary);
+    // number of computation repetitions to get a better run time measurement
+    // size_t repeats = (size_t)cmd.get<int>("repeats");
+    // load the input image as grayscale
+     bool gray = cmd.get<bool>("bw");
+	 int mk = cmd.get<int>("mk"); 
+     mk = (mk <= 0) ? 5 : mk;
+	 int nk = cmd.get<int>("nk"); nk = (nk <= 0) ? 5 : nk;
+     bool is_cpu = cmd.get<bool>("cpu");
+     float lambda = cmd.get<float>("lambda"); 
+     std::cout << "lambda" << lambda << std::endl;
+     lambda = (lambda <= 0) ? 0.00035 : lambda; 
+     float lambda_min = 0.00001f;
+     float eps = cmd.get<float>("eps"); eps = ( eps <= 0 ) ? 1e-3 : eps;
+     int iter = cmd.get<int>("iter"); 
+     iter = ( iter <= 0 ) ? 1 : iter;
 
 
-    std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
+     std::cout << "mode: " << (is_cpu ? "CPU" : "GPU") << std::endl;
 
     // TODO: LOAD IMAGE
     // read input frame
@@ -325,17 +324,12 @@ void saveMatrixMatlab(const char *key_name,
     cudaMemcpy(d_imgIn, imgIn, img_size * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
     cudaMemcpy(d_kernel, kernel, kn * sizeof(float), cudaMemcpyHostToDevice); CUDA_CHECK;
 
-    padImgGlobalMemCuda(d_imgInPad, 
-                        d_imgIn, 
-                        w, h, nc, 
-                        mk, nk, 
-                        boundary);
+    padImgGlobalMemCuda(d_imgInPad, d_imgIn, w, h, nc, mk, nk);
     //Start loop  for pyramid
     
-    int START_LEVEL = pyramidSize - 1;
-    /*int START_LEVEL = 0;*/
+    int START_LEVEL = pyramidSize-1;
     std::cout<< "Starting level" << START_LEVEL << std::endl;
-    for(int level = START_LEVEL; level >= 0; --level){
+    for(int level = START_LEVEL; level >= START_LEVEL; --level){
         //copy image and padded image back to CPU
         std::cout << "Level Number:   " << level << 
             ", lambda: " << lambdas[level] << 
@@ -354,7 +348,6 @@ void saveMatrixMatlab(const char *key_name,
         img_size = w * h * nc;
         pad_img_size = padw * padh * nc;
         kn = mk * nk;
-        lambda = lambdas[level];
         //convert array to image
         cv::Mat mImgResize(h, w, mIn.type());
         cv::Mat mImgPadResize(padh, padw, mIn.type());
@@ -369,45 +362,23 @@ void saveMatrixMatlab(const char *key_name,
         cv::resize(mImgPadOld, mImgPadResize, mImgPadResize.size(), 0, 0, INTERPOLATION_METHOD);
         cv::resize(mKernelOld, mKernelResize, mKernelResize.size(), 0, 0, INTERPOLATION_METHOD);
         //Copy image to array
-        /*showImage("Image resized", mImgResize, 200, 200);*/
-        /*showImage("Padded resized", mImgPadResize, 100, 200);*/
-        /*cv::Mat mKernelOut(nk, mk, CV_8UC1);*/
-        /*mKernelResize.convertTo(mKernelOut, CV_8UC1, 255.0 * (mk*nk), 0); */
-        /*cv::namedWindow("Kernel", CV_WINDOW_NORMAL);*/
-        /*cv::imshow("Kernel", mKernelOut);*/
-        std::string img_name = "Image_" + std::to_string(level);
-        std::string kernel_name = "Kernel_" + std::to_string(level);
+        showImage("Image resized", mImgResize, 200, 200);
+        showImage("Padded resized", mImgPadResize, 100, 200);
+
+        cv::Mat mKernelOut(nk, mk, CV_8UC1);
+        mKernelResize.convertTo(mKernelOut, CV_8UC1, 255.0 * (mk*nk), 0); 
+        cv::namedWindow("Kernel", CV_WINDOW_NORMAL);
+        cv::imshow("Kernel", mKernelOut);
+        cv::waitKey(0);
         
         //copy image to GPU
         convertMatToLayered(imgIn, mImgResize);
         convertMatToLayered(imgInPad, mImgPadResize);
         convertMatToLayered(kernel, mKernelResize);
-        saveMatrixMatlab(img_name.c_str(),
-                        imgInPad,
-                        padw,
-                        padh,
-                        nc);
-        PyErr_Print();
-        saveMatrixMatlab(kernel_name.c_str(),
-                        kernel,
-                        mk,
-                        nk,
-                        1);
-        PyErr_Print();
         cudaMemcpy(d_kernel, kernel, kn * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_imgIn, imgIn, img_size * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_imgInPad, imgInPad, pad_img_size * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_imgInPadTemp, imgInPad, pad_img_size * sizeof(float), cudaMemcpyHostToDevice);
-
-        //select non zero kernel
-        selectNonZeroGlobalMemCuda(d_kernel, mk, nk);
-        /*cudaThreadSynchronize();*/
-
-        //normalise kernel
-        normaliseGlobalMemCuda(d_kernel, mk, nk);
-        /*cudaThreadSynchronize();*/
-
-        /*break;*/
     //}
     
 
@@ -496,13 +467,6 @@ void saveMatrixMatlab(const char *key_name,
                          d_workspace1,
                          cudnn,
                          workspace_bytes1);
-        /*cudaMemcpy(imgUpConv, d_imgDownConv0, img_size * sizeof(float), cudaMemcpyDeviceToHost);*/
-    /*saveMatrixMatlab("cuda_conv1",*/
-                    /*imgUpConv,*/
-                    /*w,*/
-                    /*h,*/
-                    /*nc);*/
-    /*PyErr_Print();*/
         /*cudaThreadSynchronize();*/
         /*if(iterations == 1)*/
             /*break;*/
@@ -531,13 +495,6 @@ void saveMatrixMatlab(const char *key_name,
                          cudnn,
                          workspace_bytes2);
 
-        /*cudaMemcpy(imgUpConv, d_imgUpConv, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);*/
-    /*saveMatrixMatlab("cuda_conv2",*/
-                    /*imgUpConv,*/
-                    /*padw,*/
-                    /*padh,*/
-                    /*nc);*/
-    /*PyErr_Print();*/
         /*cudaThreadSynchronize();*/
 
         // compute gradient and divergence
@@ -546,29 +503,13 @@ void saveMatrixMatlab(const char *key_name,
                                  d_dx_bw, d_dy_bw,
                                  d_dx_mixed, d_dy_mixed, 
                                  d_imgInPadTemp, padw, padh, nc, eps);
-        
-        /*cudaMemcpy(imgUpConv, d_div, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);*/
-    /*saveMatrixMatlab("cuda_div",*/
-                    /*imgUpConv,*/
-                    /*padw,*/
-                    /*padh,*/
-                    /*nc);*/
-    /*PyErr_Print();*/
         /*cudaThreadSynchronize();*/
         
 
         // TODO: subtract the divergence from upconvolution result (RAVIL)
         alpha = -1.0f * lambda;
-        cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+
         cublasSaxpy(handle, pad_img_size, &alpha, d_div, 1, d_imgUpConv, 1); CUDA_CHECK;
-        /*cudaThreadSynchronize();*/
-        /*cudaMemcpy(imgUpConv, d_imgUpConv, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);*/
-    /*saveMatrixMatlab("cuda_subU",*/
-                    /*imgUpConv,*/
-                    /*padw,*/
-                    /*padh,*/
-                    /*nc);*/
-    /*PyErr_Print();*/
         // TODO: compute epsilon on GPU
         computeEpsilonGlobalMemCuda(d_epsU, handle, d_imgInPadTemp, d_imgUpConv, pad_img_size, 5e-3);
         /*cudaThreadSynchronize();*/
@@ -579,14 +520,6 @@ void saveMatrixMatlab(const char *key_name,
         cublasSaxpy(handle, pad_img_size, d_epsU, d_imgUpConv, 1, d_imgInPadTemp, 1);
         /*cudaThreadSynchronize();*/
 
-        cudaMemcpy(&epsU, d_epsU, sizeof(float), cudaMemcpyDeviceToHost);
-        /*cudaMemcpy(imgUpConv, d_imgInPadTemp, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);*/
-    /*saveMatrixMatlab("cuda_updateU",*/
-                    /*imgUpConv,*/
-                    /*padw,*/
-                    /*padh,*/
-                    /*nc);*/
-    /*PyErr_Print();*/
 
         //convoluton of k^y*y^{t+1}
         //Our implementation
@@ -612,13 +545,6 @@ void saveMatrixMatlab(const char *key_name,
                          d_workspace1,
                          cudnn,
                          workspace_bytes1);
-        cudaMemcpy(imgUpConv, d_imgDownConv1, img_size * sizeof(float), cudaMemcpyDeviceToHost);
-    /*saveMatrixMatlab("cuda_conv3",*/
-                    /*imgUpConv,*/
-                    /*w,*/
-                    /*h,*/
-                    /*nc);*/
-    /*PyErr_Print();*/
         /*cudaThreadSynchronize();*/
 
         //Substraction with f
@@ -659,13 +585,6 @@ void saveMatrixMatlab(const char *key_name,
 
         /*cudaThreadSynchronize();*/
         
-        /*cudaMemcpy(imgUpConv, d_kernel_temp, kn * sizeof(float), cudaMemcpyDeviceToHost);*/
-    /*saveMatrixMatlab("cuda_conv4",*/
-                    /*imgUpConv,*/
-                    /*mk,*/
-                    /*nk,*/
-                    /*1);*/
-    /*PyErr_Print();*/
         computeEpsilonGlobalMemCuda(d_epsK, handle, d_kernel, d_kernel_temp, kn, 1e-3);
         /*cudaThreadSynchronize();*/
         /*cudaMemcpy(kernel, d_kernel_temp, kn*sizeof(float), cudaMemcpyDeviceToHost);*/
@@ -893,12 +812,6 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
     convertLayeredToMat(mKernel, kernel);
 
     
-    /*saveMatrixMatlab("interp_image",*/
-                    /*imgIn,*/
-                    /*w,*/
-                    /*h,*/
-                    /*nc);*/
-    /*PyErr_Print();*/
     saveMatrixMatlab("output_image",
                     imgInPad,
                     padw,
@@ -963,7 +876,6 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
 
     cudaFree(d_imgIn); CUDA_CHECK;
     cudaFree(d_imgInPad); CUDA_CHECK;
-    cudaFree(d_imgInPadTemp); CUDA_CHECK;
     cudaFree(d_imgPadRot); CUDA_CHECK;
     cudaFree(d_imgInBuffer); CUDA_CHECK;
     cudaFree(d_imgOut); CUDA_CHECK;
