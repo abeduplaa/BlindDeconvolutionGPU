@@ -7,7 +7,7 @@
 
 __global__
 void computeDownConvolutionGlobalMemKernel1(float* imgOut, const float* imgIn,
-const float* kernel, const int w, const int h, const int nc, const int m, const int n){
+const float* kernel, const int w, const int h, const int nc, const int m, const int n) {
 	
 	//0. define idxx and idyy in 2d grid
 	int idx = threadIdx.x + blockIdx.x*blockDim.x;
@@ -18,29 +18,22 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
 	size_t imgOut_h = h - n + 1;
 	int kRadius_m = (m - 1) / 2;
 	int kRadius_n = (n - 1) / 2;
-	int kidx = 0;
 
 	// GPU Parameters
-	int i = idx + idy*imgOut_w;
-	int out_idx, out_x, out_y = 0;
-	int in_idx = 0;
+	int i = idx + idy * imgOut_w;
+	int out_idx = 0, out_x = 0, out_y = 0;
 
 	//2. compute downconvolution
 
-	//if(idx < imgOut_w && idy < imgOut_h) //why is this incorrect?
-	if(idx < imgOut_w && idy < imgOut_h )
-	{
+	if(idx < imgOut_w && idy < imgOut_h ) {
         imgOut[i] = 0.0f;
-		for(int c = 0; c < nc; c++)
-		{
+		for(int c = 0; c < nc; c++) {
             out_idx = i + (c*imgOut_h*imgOut_w);
             out_x = idx + kRadius_m;
             out_y = idy + kRadius_n;
 			
-            for(int kj = -kRadius_n; kj <= kRadius_n; kj++)
-            {
-                for(int ki = -kRadius_m; ki <= kRadius_m; ki++)
-                {
+            for(int kj = -kRadius_n; kj <= kRadius_n; kj++) {
+                for(int ki = -kRadius_m; ki <= kRadius_m; ki++) {
                     imgOut[i] += kernel[(ki+kRadius_m+c*m*n)+((kj+kRadius_n)*kRadius_m)]
                         * imgIn[(out_x+ki)+ (out_y+kj)*w + (c*w*h)];
                 }
@@ -49,9 +42,10 @@ const float* kernel, const int w, const int h, const int nc, const int m, const 
 	}
 }
 
+
 __global__
 void computeDownConvolutionGlobalMemKernel(float* imgOut, const float* imgIn,
-const float* kernel, const int w, const int h, const int nc, const int m, const int n){
+const float* kernel, const int w, const int h, const int nc, const int m, const int n) {
 	
 	//0. define idxx and idyy in 2d grid
 	int idx = threadIdx.x + blockIdx.x*blockDim.x;
@@ -239,7 +233,6 @@ void computeImageConvolution(float *d_kernel_temp, const int mk, const int nk ,
                                                      nc);
             
             CUDA_CHECK;
-            /*cudaThreadSynchronize();*/
 
 
             cub::DeviceReduce::Sum<float*, float*>(d_temp_storage,
@@ -247,7 +240,6 @@ void computeImageConvolution(float *d_kernel_temp, const int mk, const int nk ,
                                                    d_imgInBuffer,
                                                    &d_kernel_temp[kernel_index],
                                                    w*h*nc);
-            /*cudaThreadSynchronize();*/
         }
     }
     cudaFree(d_temp_storage);  CUDA_CHECK;

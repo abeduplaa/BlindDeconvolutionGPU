@@ -60,8 +60,6 @@ void computeUpConvolutionCPU(float *imgOut, const float *imgIn,
         const float *kernel, int w, int h, int nc, int m, int n){
     size_t outSizeX = m+w-1;  size_t outSizeY = n+h-1;
     int padX = floor(m/2.0);  int  padY = floor(n/2.0);
-    size_t inSize = w*h*nc;
-    size_t outSize = (m+w-1) * (n+h-1) * nc;
     int id, idx, idy = 0;
     for(int c = 0; c < nc; ++c){
         for(int j = 0; j < outSizeY; ++j){

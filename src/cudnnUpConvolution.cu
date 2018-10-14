@@ -1,16 +1,17 @@
 #include "cudnnUpConvolution.cuh"
 
 size_t createDescriptorsUp(cudnnTensorDescriptor_t& input_descriptor,
-                       cudnnFilterDescriptor_t& kernel_descriptor,
-                       cudnnConvolutionDescriptor_t& convolution_descriptor,
-                       cudnnTensorDescriptor_t& output_descriptor,
-                       cudnnConvolutionFwdAlgo_t& convolution_algorithm,
-                       cudnnHandle_t& cudnn,
-                       const int inputX,
-                       const int inputY,
-                       const int kernelX,
-                       const int kernelY,
-                       const int nc){
+                           cudnnFilterDescriptor_t& kernel_descriptor,
+                           cudnnConvolutionDescriptor_t& convolution_descriptor,
+                           cudnnTensorDescriptor_t& output_descriptor,
+                           cudnnConvolutionFwdAlgo_t& convolution_algorithm,
+                           cudnnHandle_t& cudnn,
+                           const int inputX,
+                           const int inputY,
+                           const int kernelX,
+                           const int kernelY,
+                           const int nc){
+
     cudnnCreateTensorDescriptor(&input_descriptor);
     cudnnSetTensor4dDescriptor(input_descriptor,
                                /*format=*/CUDNN_TENSOR_NCHW,
@@ -86,23 +87,24 @@ size_t createDescriptorsUp(cudnnTensorDescriptor_t& input_descriptor,
 }
 
 void callConvolutionUp(float* d_output,
-                     const float* d_input,
-                     const float* d_kernel,
-                     const int inputX,
-                     const int inputY,
-                     const int kernelX,
-                     const int kernelY,
-                     const int outputX,
-                     const int outputY,
-                     const int nc,
-                     cudnnTensorDescriptor_t& input_descriptor,
-                     cudnnFilterDescriptor_t& kernel_descriptor,
-                     cudnnConvolutionDescriptor_t& convolution_descriptor,
-                     cudnnTensorDescriptor_t& output_descriptor,
-                     cudnnConvolutionFwdAlgo_t& convolution_algorithm,
-                     void* d_workspace,
-                     cudnnHandle_t& cudnn,
-                     size_t workspace_bytes){
+                       const float* d_input,
+                       const float* d_kernel,
+                       const int inputX,
+                       const int inputY,
+                       const int kernelX,
+                       const int kernelY,
+                       const int outputX,
+                       const int outputY,
+                       const int nc,
+                       cudnnTensorDescriptor_t& input_descriptor,
+                       cudnnFilterDescriptor_t& kernel_descriptor,
+                       cudnnConvolutionDescriptor_t& convolution_descriptor,
+                       cudnnTensorDescriptor_t& output_descriptor,
+                       cudnnConvolutionFwdAlgo_t& convolution_algorithm,
+                       void* d_workspace,
+                       cudnnHandle_t& cudnn,
+                       size_t workspace_bytes){
+
     const float alpha = 1.0f, beta = 0.0f;
     for(int c = 0; c < nc; ++c){
         cudnnConvolutionForward(cudnn,
@@ -119,6 +121,5 @@ void callConvolutionUp(float* d_output,
                                 output_descriptor,
                                 &d_output[outputX * outputY * c]);
         cudaThreadSynchronize();
-        
     }
 }

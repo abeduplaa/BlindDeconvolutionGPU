@@ -14,4 +14,9 @@ void rotateKernel_180(float *d_kernel_rot_180,
                       const int mk, 
                       const int nk); 
 
+
+void stackData(float *d_data, 
+               const int w, 
+               const int h,
+               const int nc); 
 #endif

@@ -35,9 +35,9 @@ int imageDim(int in, const float factor)
 
 }
 
-int pyramidScale(const int m, const int n, const int smallestScale, 
-    const float scaleMultiplier, const float lambdaMultiplier, const float finalLambda, const float largestLambda)
-{
+int pyramidScale(const int m, const int n, const int smallestScale,
+                 const float scaleMultiplier, const float lambdaMultiplier,
+                 const float finalLambda, const float largestLambda) {
     //dummy vars:
     int m1 = m;
     int n1 = n;
@@ -45,8 +45,8 @@ int pyramidScale(const int m, const int n, const int smallestScale,
     int pyramidSize = 1;
     
     while( (m1 > smallestScale) && (n1 > smallestScale) 
-    && (l1 * lambdaMultiplier < largestLambda) )
-    {
+    && (l1 * lambdaMultiplier < largestLambda) ) {
+
         m1 = kernelDim(m1, scaleMultiplier, smallestScale);
 
         n1 = kernelDim(n1, scaleMultiplier, smallestScale);
