@@ -13,13 +13,14 @@ if(opencv_core_found)
 endif()
 
 
+set(ADDITIONAL_LIBS "")
 option(DEBUG_MODE "Option description" OFF)
 if(DEBUG_MODE)
     add_definitions(-DDEBUG)
+    find_package(PythonLibs 3.5 REQUIRED)
+    include_directories(${PYTHON_INCLUDE_DIRS})
+    set(ADDITIONAL_LIBS ${PYTHON_LIBRARIES})
 endif(DEBUG_MODE)
-
-
-include_directories(${PYTHON_INCLUDE_DIRS})
 
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3; -std=c++11; --use_fast_math; -arch=sm_50; -Xptxas -v)
@@ -28,11 +29,13 @@ set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -O3; -std=c++11; --use_fast_math; -arch=
 file(GLOB SRCS "./*.cu")
 
 
-find_package(PythonLibs 3.5 REQUIRED)
 include_directories(${CMAKE_SOURCE_DIR})
 
 
 cuda_add_executable(deblur ${SRCS})
 
 
-target_link_libraries(deblur -lm -lcudnn ${PYTHON_LIBRARIES} ${OpenCV_LIBS} ${CUDA_LIBRARIES} ${CUDA_cublas_LIBRARY})
+target_link_libraries(deblur -lm -lcudnn ${OpenCV_LIBS} 
+                                         ${CUDA_LIBRARIES} 
+                                         ${CUDA_cublas_LIBRARY}
+                                         ${ADDITIONAL_LIBS})

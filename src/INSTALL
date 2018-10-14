@@ -30,10 +30,13 @@ to ~/usr
     ./deblur --image=<path-to-image> --mk=<uint> --nk=<uint> --iter=<uint> --bc=<p,s,r,z>
 
 DEBUG:
+You must have python3.5 installed on your machine to use the debug mode.
+Additionaly you have to be sure that you have numpy and scipy
+
 1. Repeat 1-4 steps for the release mode
 2. Append your .bashrc file in the following way:
 
-    export PYTHON_PATH=/usr/include/python<version>
+    export PYTHON_PATH=/usr/include/python3.5
     export C_INCLUDE_PATH=$C_INCLUDE_PATH:$PYTHON_PATH
     export CPATH=$CPATH:$PYTHON_PATH
     export INCLUDE=$INCLUDE:$PYTHON_PATH 

@@ -239,4 +239,101 @@ void saveMatrixMatlab(const char *key_name,
     }
 
 }
+
+
+void pythonConv2(float *result,
+                 float *input, int input_width, int input_height, int input_channels,
+                 float *kernel, int kernel_width, int kernel_height, int kernel_channels,
+                 PyObject *function, char *conv_mode, char *conv_tag) {
+ 
+    PyObject *script_name = PyUnicode_DecodeFSDefault("pyfunctions");
+    PyObject *py_script = PyImport_Import(script_name);
+
+    if (py_script == NULL) {
+        std::cout << "ERROR: cannot import the users script" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    PyObject *python_callback = PyObject_GetAttrString(py_script, "conv2");
+    if (PyCallable_Check(python_callback) == 0) {
+        std::cout << "ERROR: cannot link python_callback function" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    if(PyArray_API == NULL) {
+        _import_array();
+    }
+
+    int num_dim = 3;
+
+    npy_intp image_dims[3] = {input_channels, input_height, input_width};
+    
+    PyObject *numpy_image = PyArray_SimpleNewFromData(num_dim,
+                                                      image_dims,
+                                                      NPY_FLOAT,
+                                                      input);
+    
+
+    npy_intp kernel_dims[3] = {kernel_channels, kernel_height, kernel_width};
+    
+    PyObject *numpy_kernel = PyArray_SimpleNewFromData(num_dim,
+                                                       kernel_dims,
+                                                       NPY_FLOAT,
+                                                       kernel);
+
+    PyObject *mode = PyUnicode_DecodeFSDefault(conv_mode);
+    PyObject *tag= PyUnicode_DecodeFSDefault(conv_tag);
+
+    PyObject *params = PyTuple_New(4);
+    PyTuple_SetItem(params, 0, numpy_image);
+    PyTuple_SetItem(params, 1, numpy_kernel);
+    PyTuple_SetItem(params, 2, mode);
+    PyTuple_SetItem(params, 3, tag);
+
+    if (PyCallable_Check(function) == 0) {
+        std::cout << "ERROR: cannot link python_callback function" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    PyObject *pOutput = PyObject_CallObject(function, params);
+    if (pOutput == NULL) {
+        std::cout << "cannot call the users script" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    float *output = (float*)PyArray_DATA(pOutput);
+    
+
+    // copy results back to application from python
+    int output_num_channels = kernel_channels == 3 ? 1 : 3;
+    int output_width = -1, output_height = - 1;
+    if (!strcmp(conv_mode, "valid")) {
+        output_width = input_width - kernel_width + 1; 
+        output_height = input_height - kernel_height + 1; 
+    }
+    else if (!strcmp(conv_mode, "full")) {
+        output_width = input_width + kernel_width - 1; 
+        output_height = input_height + kernel_height - 1;
+    }
+    else {
+        std::cout << "THERE IS NO SUCH A MODE" << std::endl;
+        exit(1);
+    }
+
+    for (int channel = 0; channel < output_num_channels; ++channel) {
+
+        int output_offset = output_width * output_height * channel;
+        for (int j = 0; j < output_height; ++j) {
+            for (int i = 0; i < output_width; ++i) {
+                result[i + j * output_width + output_offset] = 
+                    output[i + j * output_width + output_offset];
+            }
+        }
+    } 
+}
+
 #endif
