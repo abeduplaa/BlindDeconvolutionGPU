@@ -13,6 +13,11 @@
 #include "cublas_v2.h"
 #include <cudnn.h>
 
+#ifdef DEBUG
+    #include <Python.h>
+    #include <numpy/arrayobject.h>
+#endif
+
 #define checkCUDNN(expression)                               \
   {                                                          \
     cudnnStatus_t status = (expression);                     \
@@ -113,5 +118,14 @@ private:
 	bool running;
 	float sec;
 };
+
+
+#ifdef DEBUG
+void saveMatrixMatlab(const char *key_name,
+                      float *array,
+                      int dim_x,
+                      int dim_y,
+                      int dim_z); 
+#endif
 
 #endif

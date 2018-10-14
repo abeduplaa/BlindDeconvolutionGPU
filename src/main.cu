@@ -9,6 +9,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include "cublas_v2.h"
 
 #include "helper.cuh"
 #include "downConvolution.cuh"
@@ -24,78 +25,16 @@
 #include "cudnnDownConvolution.cuh"
 #include "cudnnUpConvolution.cuh"
 
-#include <Python.h>
-#include <numpy/arrayobject.h>
-
-#include "cublas_v2.h"
 
 #define INTERPOLATION_METHOD CV_INTER_CUBIC
 /*#define INTERPOLATION_METHOD CV_INTER_LINEAR*/
 
-/*int main(int argc,char **argv)*/
-/*{*/
-    /*downConvTest();*/
-/*}*/
 
+int main(int argc,char **argv) {
 
-void saveMatrixMatlab(const char *key_name,
-                      float *array,
-                      int dim_x,
-                      int dim_y,
-                      int dim_z) {
-
-    PyObject *pName, *pModule, *pFunc;
-    PyObject *pArgs;
-
-    // load module and function
-    /*pName = PyString_FromString("pyfunctions");*/
-    pName = PyUnicode_DecodeFSDefault("pyfunctions");
-    pModule = PyImport_Import(pName);
-    Py_DECREF(pName);
-
-    if (pModule == NULL) {
-        std::cout << "ERROR: cannot import scipy IO" << std::endl;
-        PyErr_Print();
-        exit(1);
-    }
-
-    // convert C-array to numpy array
-    pFunc = PyObject_GetAttrString(pModule, "save_matrix");
-    if (PyCallable_Check(pFunc) == 0) {
-        std::cout << "ERROR: cannot link savemat function" << std::endl;
-        PyErr_Print();
-        exit(1);
-    }
-
-    const int num_dims = 3;
-    npy_intp dims[num_dims] = {dim_z, dim_y, dim_x};
-    PyObject *numpy_array = PyArray_SimpleNewFromData(num_dims,
-                                                      dims,
-                                                      NPY_FLOAT,
-                                                      array);
-
-    // create and init a dictionary to write data to a text file
-    PyObject* key = PyUnicode_FromString(key_name); 
-
-    // set up patameters for python function call
-    pArgs = PyTuple_New(2);
-    PyTuple_SetItem(pArgs, 0, key);
-    PyTuple_SetItem(pArgs, 1, numpy_array);
-
-    // call python
-    PyObject *pOutput = PyObject_CallObject(pFunc, pArgs);
-    if (pOutput == NULL) {
-        std::cout << "cannot call save_matrix" << std::endl;
-        PyErr_Print();
-        exit(1);
-    }
-}
-
-
- int main(int argc,char **argv) {
+#ifdef DEBUG
     Py_Initialize();
-    import_array();
-    // TODO: ADD COMMAND LINE FUNCTIONS LATER
+#endif
 
     // parse command line parameters
     const char *params = {
@@ -340,6 +279,7 @@ void saveMatrixMatlab(const char *key_name,
         std::cout << "Level Number:   " << level << 
             ", lambda: " << lambdas[level] << 
             "mk" << mP[level] << "nk" << nP[level]  <<std::endl;
+
         cudaMemcpy(imgIn, d_imgIn, img_size * sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(imgInPad, d_imgInPad, pad_img_size * sizeof(float), cudaMemcpyDeviceToHost);
         cudaMemcpy(kernel, d_kernel, kn * sizeof(float), cudaMemcpyDeviceToHost);
@@ -382,18 +322,22 @@ void saveMatrixMatlab(const char *key_name,
         convertMatToLayered(imgIn, mImgResize);
         convertMatToLayered(imgInPad, mImgPadResize);
         convertMatToLayered(kernel, mKernelResize);
+
+#ifdef DEBUG
         saveMatrixMatlab(img_name.c_str(),
                         imgInPad,
                         padw,
                         padh,
                         nc);
         PyErr_Print();
+
         saveMatrixMatlab(kernel_name.c_str(),
                         kernel,
                         mk,
                         nk,
                         1);
         PyErr_Print();
+#endif
         cudaMemcpy(d_kernel, kernel, kn * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_imgIn, imgIn, img_size * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_imgInPad, imgInPad, pad_img_size * sizeof(float), cudaMemcpyHostToDevice);
@@ -892,7 +836,7 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
     convertLayeredToMat(mImgUpConv, imgUpConv);
     convertLayeredToMat(mKernel, kernel);
 
-    
+#ifdef DEBUG    
     /*saveMatrixMatlab("interp_image",*/
                     /*imgIn,*/
                     /*w,*/
@@ -911,6 +855,7 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
                     nk,
                     1);
     PyErr_Print();
+#endif
 
     size_t pos_orig_x = 100, pos_orig_y = 50, shift_y = 50; 
     showImage("Input", mIn, pos_orig_x, pos_orig_y);
@@ -991,11 +936,10 @@ cudaMemcpy(dy_mixed, d_dy_mixed, pad_img_size * sizeof(float), cudaMemcpyDeviceT
 
     // close all opencv windows
     cv::destroyAllWindows();
+
+#ifdef DEBUG
     Py_Finalize();
+#endif
 
     return 0;
 } 
-
-
-
-

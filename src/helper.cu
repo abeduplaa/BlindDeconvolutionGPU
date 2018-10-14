@@ -179,3 +179,64 @@ void subtractArrays(float *arrayOut,const float *A, const float *B, const int si
         arrayOut[i] = A[i] - B[i];
     }
 }
+
+#ifdef DEBUG
+void saveMatrixMatlab(const char *key_name,
+                      float *array,
+                      int dim_x,
+                      int dim_y,
+                      int dim_z) {
+
+
+    PyObject *pName, *pModule, *pFunc;
+    PyObject *pArgs;
+
+    // load module and function
+    /*pName = PyString_FromString("pyfunctions");*/
+    pName = PyUnicode_DecodeFSDefault("pyfunctions");
+    pModule = PyImport_Import(pName);
+    Py_DECREF(pName);
+
+    if (pModule == NULL) {
+        std::cout << "ERROR: cannot import scipy IO" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    // convert C-array to numpy array
+    pFunc = PyObject_GetAttrString(pModule, "save_matrix");
+    if (PyCallable_Check(pFunc) == 0) {
+        std::cout << "ERROR: cannot link savemat function" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+    if(PyArray_API == NULL) {
+        _import_array();
+    }
+
+    const int num_dims = 3;
+    npy_intp dims[num_dims] = {dim_z, dim_y, dim_x};
+    PyObject *numpy_array = PyArray_SimpleNewFromData(num_dims,
+                                                      dims,
+                                                      NPY_FLOAT,
+                                                      array);
+
+    // create and init a dictionary to write data to a text file
+    PyObject* key = PyUnicode_FromString(key_name); 
+
+    // set up patameters for python function call
+    pArgs = PyTuple_New(2);
+    PyTuple_SetItem(pArgs, 0, key);
+    PyTuple_SetItem(pArgs, 1, numpy_array);
+
+    // call python
+    PyObject *pOutput = PyObject_CallObject(pFunc, pArgs);
+    if (pOutput == NULL) {
+        std::cout << "cannot call save_matrix" << std::endl;
+        PyErr_Print();
+        exit(1);
+    }
+
+}
+#endif

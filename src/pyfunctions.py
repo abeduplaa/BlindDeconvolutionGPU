@@ -2,6 +2,7 @@ import numpy as np
 import sys
 from scipy import signal
 import scipy.io as sio
+import os
 
 def conv2(input_data, kernel, mode, tag):
     
@@ -64,6 +65,13 @@ def conv2(input_data, kernel, mode, tag):
 
 def save_matrix(key, matrix):
 
+    save_folder = os.environ["DEBLUR_DEBUG_FOLDER"]
+    if not save_folder or save_folder == "":
+        save_folder = "./deblur_debug_data"
+
+    if not os.path.isdir(save_folder):
+        os.mkdir(save_folder)
+
+    print(save_folder)
     container = {key: np.moveaxis(matrix, 0, -1)}
-    save_folder = "../data_from_python/"
-    sio.savemat(save_folder + key + '.mat', container)
+    sio.savemat(save_folder + '/' + key + '.mat', container)

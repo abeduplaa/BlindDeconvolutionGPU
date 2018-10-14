@@ -1,3 +1,5 @@
+RELEASE:
+
 1. Download cuDNN as tarball archive from the official Nvidia website
     cuDNN v7.0.5 Library for Linux (link: https://developer.nvidia.com/compute/machine-learning/cudnn/secure/v7.0.5/prod/8.0_20171129/cudnn-8.0-linux-x64-v7)
 
@@ -14,7 +16,7 @@ to ~/usr
     export LD_LIBRARY_PATH=$CU_DNN_PATH/lib64:$LD_LIBRARY_PATH:               
     export C_INCLUDE_PATH=$C_INCLUDE_PATH:$CU_DNN_PATH/include
 
-5. update your changes
+5. update your env. vatiables
 	source ~/.bashrc
 
 6. Go to the deblur source folder and create a new directory "build". Compile deblur
@@ -22,7 +24,35 @@ to ~/usr
 	mkdir build
 	cd build
 	cmake ..
-	make
+	make -j4
 
 7. run the application
     ./deblur --image=<path-to-image> --mk=<uint> --nk=<uint> --iter=<uint> --bc=<p,s,r,z>
+
+DEBUG:
+1. Repeat 1-4 steps for the release mode
+2. Append your .bashrc file in the following way:
+
+    export PYTHON_PATH=/usr/include/python<version>
+    export C_INCLUDE_PATH=$C_INCLUDE_PATH:$PYTHON_PATH
+    export CPATH=$CPATH:$PYTHON_PATH
+    export INCLUDE=$INCLUDE:$PYTHON_PATH 
+
+    export PYTHONPATH=$PYTHONPATH:<path to deblur source files>
+
+3. update your env. vatiables
+    source ~/.bashrc
+
+4. Go to the deblur source folder and create a new directory "build". Compile deblur
+	cd <deblur>/src
+	mkdir build
+	cd build
+	cmake cmake -DDEBUG_MODE=ON ..
+	make -j4
+
+5. Define a folder to save debugging info through an eniroment variable
+    export DEBLUR_DEBUG_FOLDER="relative path"
+
+6. run the application
+    ./deblur --image=<path-to-image> --mk=<uint> --nk=<uint> --iter=<uint> --bc=<p,s,r,z>
+
