@@ -6,15 +6,28 @@ RELEASE:
 2. extract the archive
 	tar xvf <Download>/cudnn-8.0-linux-x64-v7.tgz
 
-3. rename the folder "cuda" to "cuDNN" avoid some conflicts. Copy "cuDNN" folder 
+3. rename the folder "cuda" to "cuDNN" in order to avoid some conflicts. Copy "cuDNN" folder 
 to ~/usr
 	mv cuda cuDNN
 	mv ./cuDNN ~/usr/
 
-4. open your .bashrc and add the following
+4. open your .bashrc and add the following:
     export CU_DNN_PATH=$HOME/usr/cuDNN
-    export LD_LIBRARY_PATH=$CU_DNN_PATH/lib64:$LD_LIBRARY_PATH:               
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PAT:H$CU_DNN_PATH/lib64               
     export C_INCLUDE_PATH=$C_INCLUDE_PATH:$CU_DNN_PATH/include
+
+    NOTE: don't forget update the linker cache executing ldconfig
+    If you don't have the the super user rights we recomend you
+    manually change CMakeLists.txt adding -L<path to cudnn library>
+    
+    EXAMPLE:
+    ...
+    target_link_libraries(deblur -lm -L/home/<user>/usr/cuDNN/lib64 -lcudnn
+                          ${OpenCV_LIBS}          
+                          ${CUDA_LIBRARIES}                                          
+                          ${CUDA_cublas_LIBRARY}                                     
+                          ${ADDITIONAL_LIBS})
+    ...
 
 5. update your env. vatiables
 	source ~/.bashrc

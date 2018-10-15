@@ -255,7 +255,6 @@ int main(int argc,char **argv) {
 
     //Start loop  for pyramid
     int START_LEVEL = pyramidSize - 1;
-    /*int START_LEVEL = 0;*/
     std::cout<< "Starting level" << START_LEVEL << std::endl;
     for(int level = START_LEVEL; level >= 0; --level) {
 
@@ -500,23 +499,23 @@ int main(int argc,char **argv) {
 
             // perform convolution: k = u * u_pad
             //Our implementation
-            computeImageConvolution(d_kernel_temp, mk, nk ,
-                                    d_imgDownConv1Rot, d_imgInBuffer, 
-                                    w, h, 
-                                    d_imgPadRot, padw, padh, 
-                                    nc); 
+            /*computeImageConvolution(d_kernel_temp, mk, nk ,*/
+                                    /*d_imgDownConv1Rot, d_imgInBuffer, */
+                                    /*w, h, */
+                                    /*d_imgPadRot, padw, padh, */
+                                    /*nc); */
             //CUDNN
-            /*callConvolutiondc1(d_kernel_temp,*/
-                             /*d_imgPadRot,*/
-                             /*d_imgDownConv1Rot,*/
-                             /*input_descriptor3,*/
-                             /*kernel_descriptor3,*/
-                             /*convolution_descriptor3,*/
-                             /*output_descriptor3,*/
-                             /*convolution_algorithm3,*/
-                             /*d_workspace3,*/
-                             /*cudnn,*/
-                             /*workspace_bytes3);*/
+            callConvolutiondc1(d_kernel_temp,
+                             d_imgPadRot,
+                             d_imgDownConv1Rot,
+                             input_descriptor3,
+                             kernel_descriptor3,
+                             convolution_descriptor3,
+                             output_descriptor3,
+                             convolution_algorithm3,
+                             d_workspace3,
+                             cudnn,
+                             workspace_bytes3);
 
             
             computeEpsilonGlobalMemCuda(d_epsK, handle, d_kernel, d_kernel_temp, kn, 1e-3);
